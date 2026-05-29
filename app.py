@@ -351,6 +351,91 @@ st.sidebar.divider()
 st.sidebar.warning("Academic prototype only. Not legal advice.")
 
 # ----------------------------
+# Reusable Partner Form
+# ----------------------------
+def partner_form(label, state_key):
+    existing = st.session_state[state_key]
+    with st.form(f"{state_key}_form"):
+        name = st.text_input(f"{label} Name", value=existing.get("name", ""))
+        email = st.text_input(f"{label} Email", value=existing.get("email", ""))
+        citizenship = st.text_input("Citizenship", value=existing.get("citizenship", ""))
+        immigration_status = st.selectbox(
+            "Immigration / Residency Status",
+            ["U.S. Citizen", "Green Card / Permanent Resident", "F-1", "H-1B", "L-1", "Canadian PR", "Other", "Prefer not to say"],
+            index=0 if not existing.get("immigration_status") else ["U.S. Citizen", "Green Card / Permanent Resident", "F-1", "H-1B", "L-1", "Canadian PR", "Other", "Prefer not to say"].index(existing.get("immigration_status"))
+        )
+        income = st.number_input("Approximate Annual Income", min_value=0.0, step=1000.0, value=float(existing.get("income", 0.0)))
+        owns_business = st.checkbox("Owns a business or equity interest", value=existing.get("owns_business", False))
+        owns_real_estate = st.checkbox("Owns real estate", value=existing.get("owns_real_estate", False))
+        has_children_prior = st.checkbox("Has children from prior relationship", value=existing.get("has_children_prior", False))
+        supports_family = st.checkbox("Financially supports family members", value=existing.get("supports_family", False))
+        notes = st.text_area("Additional Notes", value=existing.get("notes", ""))
+
+        st.markdown("### Prenup Preferences")
+        premarital_assets = st.selectbox(
+            "Premarital assets should be treated as:",
+            ["Keep separate", "Share after marriage", "Discuss with attorney"],
+            key=f"{state_key}_premarital_assets"
+        )
+        future_income = st.selectbox(
+            "Future income during marriage should be treated as:",
+            ["Shared marital property", "Separate property", "Discuss with attorney"],
+            key=f"{state_key}_future_income"
+        )
+        business_growth = st.selectbox(
+            "Business growth/appreciation during marriage should be:",
+            ["Keep separate", "Share appreciation", "Discuss with attorney"],
+            key=f"{state_key}_business_growth"
+        )
+        debt_responsibility = st.selectbox(
+            "Premarital debts should be:",
+            ["Each partner responsible for own debts", "Shared responsibility", "Discuss with attorney"],
+            key=f"{state_key}_debt_responsibility"
+        )
+        spousal_support = st.selectbox(
+            "Spousal support should be:",
+            ["Waived", "Limited", "Reserved for future review", "Discuss with attorney"],
+            key=f"{state_key}_spousal_support"
+        )
+        inheritance = st.selectbox(
+            "Inheritance and family gifts should be:",
+            ["Keep separate", "Share if used by couple", "Discuss with attorney"],
+            key=f"{state_key}_inheritance"
+        )
+        home_purchase = st.selectbox(
+            "Future home purchase should be:",
+            ["Shared property", "Based on contribution", "Discuss with attorney"],
+            key=f"{state_key}_home_purchase"
+        )
+
+        submitted = st.form_submit_button(f"Save {label} Questionnaire")
+
+    if submitted:
+        st.session_state[state_key] = {
+            "name": name,
+            "email": email,
+            "citizenship": citizenship,
+            "immigration_status": immigration_status,
+            "income": income,
+            "owns_business": owns_business,
+            "owns_real_estate": owns_real_estate,
+            "has_children_prior": has_children_prior,
+            "supports_family": supports_family,
+            "notes": notes,
+        }
+        goal_key = "goals_a" if state_key == "partner_a" else "goals_b"
+        st.session_state[goal_key] = {
+            "premarital_assets": premarital_assets,
+            "future_income": future_income,
+            "business_growth": business_growth,
+            "debt_responsibility": debt_responsibility,
+            "spousal_support": spousal_support,
+            "inheritance": inheritance,
+            "home_purchase": home_purchase,
+        }
+        st.success(f"{label} questionnaire saved.")
+
+# ----------------------------
 # Page 1 - Welcome
 # ----------------------------
 if page == "1. Welcome":
@@ -464,91 +549,6 @@ Access Level: {access_level}
     5. Conflicts and missing information are flagged.
     6. A lawyer-ready summary is generated.
     """)
-
-# ----------------------------
-# Reusable Partner Form
-# ----------------------------
-def partner_form(label, state_key):
-    existing = st.session_state[state_key]
-    with st.form(f"{state_key}_form"):
-        name = st.text_input(f"{label} Name", value=existing.get("name", ""))
-        email = st.text_input(f"{label} Email", value=existing.get("email", ""))
-        citizenship = st.text_input("Citizenship", value=existing.get("citizenship", ""))
-        immigration_status = st.selectbox(
-            "Immigration / Residency Status",
-            ["U.S. Citizen", "Green Card / Permanent Resident", "F-1", "H-1B", "L-1", "Canadian PR", "Other", "Prefer not to say"],
-            index=0 if not existing.get("immigration_status") else ["U.S. Citizen", "Green Card / Permanent Resident", "F-1", "H-1B", "L-1", "Canadian PR", "Other", "Prefer not to say"].index(existing.get("immigration_status"))
-        )
-        income = st.number_input("Approximate Annual Income", min_value=0.0, step=1000.0, value=float(existing.get("income", 0.0)))
-        owns_business = st.checkbox("Owns a business or equity interest", value=existing.get("owns_business", False))
-        owns_real_estate = st.checkbox("Owns real estate", value=existing.get("owns_real_estate", False))
-        has_children_prior = st.checkbox("Has children from prior relationship", value=existing.get("has_children_prior", False))
-        supports_family = st.checkbox("Financially supports family members", value=existing.get("supports_family", False))
-        notes = st.text_area("Additional Notes", value=existing.get("notes", ""))
-
-        st.markdown("### Prenup Preferences")
-        premarital_assets = st.selectbox(
-            "Premarital assets should be treated as:",
-            ["Keep separate", "Share after marriage", "Discuss with attorney"],
-            key=f"{state_key}_premarital_assets"
-        )
-        future_income = st.selectbox(
-            "Future income during marriage should be treated as:",
-            ["Shared marital property", "Separate property", "Discuss with attorney"],
-            key=f"{state_key}_future_income"
-        )
-        business_growth = st.selectbox(
-            "Business growth/appreciation during marriage should be:",
-            ["Keep separate", "Share appreciation", "Discuss with attorney"],
-            key=f"{state_key}_business_growth"
-        )
-        debt_responsibility = st.selectbox(
-            "Premarital debts should be:",
-            ["Each partner responsible for own debts", "Shared responsibility", "Discuss with attorney"],
-            key=f"{state_key}_debt_responsibility"
-        )
-        spousal_support = st.selectbox(
-            "Spousal support should be:",
-            ["Waived", "Limited", "Reserved for future review", "Discuss with attorney"],
-            key=f"{state_key}_spousal_support"
-        )
-        inheritance = st.selectbox(
-            "Inheritance and family gifts should be:",
-            ["Keep separate", "Share if used by couple", "Discuss with attorney"],
-            key=f"{state_key}_inheritance"
-        )
-        home_purchase = st.selectbox(
-            "Future home purchase should be:",
-            ["Shared property", "Based on contribution", "Discuss with attorney"],
-            key=f"{state_key}_home_purchase"
-        )
-
-        submitted = st.form_submit_button(f"Save {label} Questionnaire")
-
-    if submitted:
-        st.session_state[state_key] = {
-            "name": name,
-            "email": email,
-            "citizenship": citizenship,
-            "immigration_status": immigration_status,
-            "income": income,
-            "owns_business": owns_business,
-            "owns_real_estate": owns_real_estate,
-            "has_children_prior": has_children_prior,
-            "supports_family": supports_family,
-            "notes": notes,
-        }
-        goal_key = "goals_a" if state_key == "partner_a" else "goals_b"
-        st.session_state[goal_key] = {
-            "premarital_assets": premarital_assets,
-            "future_income": future_income,
-            "business_growth": business_growth,
-            "debt_responsibility": debt_responsibility,
-            "spousal_support": spousal_support,
-            "inheritance": inheritance,
-            "home_purchase": home_purchase,
-        }
-        st.success(f"{label} questionnaire saved.")
 
 # ----------------------------
 # Partner A Page
