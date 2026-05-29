@@ -298,7 +298,12 @@ def render_sidebar():
     st.sidebar.markdown(
         '<p style="font-size:0.55rem;letter-spacing:0.3em;text-transform:uppercase;color:#222;margin-bottom:0.1rem">Est. 2024</p>',
         unsafe_allow_html=True)
-    st.sidebar.title("KnotWise")
+    st.sidebar.markdown(
+        '<h2 style="font-family:\'Playfair Display\',serif;font-size:1.5rem;'
+        'font-weight:400;color:#F0EBE3;margin:0 0 0.1rem 0;line-height:1.2">'
+        'Knot<span style="color:#8A9E58">Wise</span></h2>',
+        unsafe_allow_html=True,
+    )
     st.sidebar.caption("AI Prenup Preparation Assistant")
     st.sidebar.divider()
     score, _ = completion_score()
@@ -952,7 +957,10 @@ elif page == "assets":
             (st.session_state.assets_a if owner=="Partner A" else st.session_state.assets_b).append(a)
             st.session_state.ai_draft = None; st.success("Asset added.")
         df = build_asset_df()
-        st.dataframe(df, use_container_width=True) if not df.empty else st.caption("No assets added yet.")
+        if not df.empty:
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.caption("No assets added yet.")
 
     with tab2:
         with st.form("debt_form"):
@@ -970,7 +978,10 @@ elif page == "assets":
             (st.session_state.debts_a if owner=="Partner A" else st.session_state.debts_b).append(d)
             st.session_state.ai_draft = None; st.success("Debt added.")
         df = build_debt_df()
-        st.dataframe(df, use_container_width=True) if not df.empty else st.caption("No debts added yet.")
+        if not df.empty:
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.caption("No debts added yet.")
 
     with tab3:
         st.caption("Files are not permanently stored. Document type and filename are recorded for demonstration purposes.")
@@ -1021,7 +1032,10 @@ elif page == "risk":
         if not missing: st.success("All major document categories present.")
     with cr:
         st.markdown('<p style="font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;color:#555;margin-bottom:0.5rem">Partner Preference Conflicts</p>', unsafe_allow_html=True)
-        st.dataframe(pd.DataFrame(conflicts), use_container_width=True) if conflicts else st.success("No major conflicts detected.")
+        if conflicts:
+            st.dataframe(pd.DataFrame(conflicts), use_container_width=True)
+        else:
+            st.success("No major conflicts detected.")
     a_df, d_df = build_asset_df(), build_debt_df()
     if not a_df.empty or not d_df.empty:
         st.markdown("---")
@@ -1132,8 +1146,34 @@ elif page == "signoff":
         both_signed = st.session_state.signoff_a.get("agreed") and st.session_state.signoff_b.get("agreed")
         if both_signed:
             st.markdown("---")
-            st.success("Both partners have signed off. Proceed to Final PDF →")
-            if st.button("Go to Final PDF →"):
+            gif_data = _b64("tumblr_nhpreeIvoL1rlnjw2o1_1280.gif")
+            if gif_data:
+                st.markdown(
+                    f'<div style="display:flex;justify-content:center;margin:1rem 0 0.5rem 0">'
+                    f'<img src="data:image/gif;base64,{gif_data}" '
+                    f'style="max-width:420px;width:100%;border-radius:4px;" /></div>',
+                    unsafe_allow_html=True,
+                )
+            pa_name = st.session_state.signoff_a.get("name", "Partner A")
+            pb_name = st.session_state.signoff_b.get("name", "Partner B")
+            st.markdown(
+                f'<div style="text-align:center;padding:2rem 1rem;">'
+                f'<p style="font-size:0.65rem;letter-spacing:0.28em;text-transform:uppercase;'
+                f'color:#8A9E58;margin-bottom:0.5rem">Congratulations</p>'
+                f'<h2 style="font-family:\'Playfair Display\',serif;font-size:2rem;'
+                f'color:#F0EBE3;font-weight:400;margin:0 0 1rem 0">'
+                f'{pa_name} &amp; {pb_name}</h2>'
+                f'<p style="color:#888;font-size:0.9rem;max-width:480px;margin:0 auto 1.5rem auto;line-height:1.8">'
+                f'You\'ve both taken an important step toward your future together. '
+                f'Your preparation draft is signed, organised, and ready for your attorney. '
+                f'The hard part is done — now let the professionals take it from here.</p>'
+                f'<p style="color:#555;font-size:0.72rem;letter-spacing:0.06em">'
+                f'Signed {st.session_state.signoff_a.get("timestamp","")}</p>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown("---")
+            if st.button("Generate Final PDF →"):
                 go("final")
 
 
