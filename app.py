@@ -124,25 +124,29 @@ label, .stSelectbox label, .stTextInput label, .stNumberInput label, .stTextArea
 }
 .stButton > button:hover { background: #8A9E58 !important; color: #050505 !important; }
 
-/* ── Form submit — filled olive ── */
+/* ── Form submit — outline with olive ── */
 [data-testid="stFormSubmitButton"] button {
-    background: #8A9E58 !important; color: #050505 !important;
-    border: none !important; font-weight: 700 !important;
+    background: transparent !important; color: #8A9E58 !important;
+    border: 1px solid #8A9E58 !important; font-weight: 600 !important;
     font-size: 0.72rem !important; letter-spacing: 0.12em !important;
     text-transform: uppercase !important; border-radius: 0 !important;
-    padding: 0.65rem 2rem !important;
+    padding: 0.65rem 2rem !important; transition: all 0.2s !important;
 }
-[data-testid="stFormSubmitButton"] button:hover { background: #9BB068 !important; }
+[data-testid="stFormSubmitButton"] button:hover {
+    background: #8A9E58 !important; color: #F0EBE3 !important;
+}
 
 /* ── Download button ── */
 .stDownloadButton > button {
-    background: #8A9E58 !important; color: #050505 !important;
-    border: none !important; border-radius: 0 !important;
+    background: transparent !important; color: #8A9E58 !important;
+    border: 1px solid #8A9E58 !important; border-radius: 0 !important;
     font-size: 0.72rem !important; letter-spacing: 0.12em !important;
-    text-transform: uppercase !important; font-weight: 700 !important;
-    padding: 0.65rem 2rem !important;
+    text-transform: uppercase !important; font-weight: 600 !important;
+    padding: 0.65rem 2rem !important; transition: all 0.2s !important;
 }
-.stDownloadButton > button:hover { background: #9BB068 !important; }
+.stDownloadButton > button:hover {
+    background: #8A9E58 !important; color: #F0EBE3 !important;
+}
 
 div[data-testid="stProgressBar"] > div > div > div {
     background: linear-gradient(90deg, #8A9E58 0%, #A8BC78 100%) !important;
