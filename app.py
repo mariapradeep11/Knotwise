@@ -37,11 +37,13 @@ html, body, [data-testid="stAppViewContainer"] {
 div[data-testid="stHorizontalBlock"]:first-of-type .stButton button {
     background: transparent !important; border: none !important;
     border-bottom: 1px solid #282828 !important; border-radius: 0 !important;
-    color: #666 !important; font-size: 0.58rem !important;
-    letter-spacing: 0.12em !important; text-transform: uppercase !important;
-    padding: 0.55rem 0.1rem !important; line-height: 1.9 !important;
+    color: #666 !important; font-size: 0.54rem !important;
+    letter-spacing: 0.08em !important; text-transform: uppercase !important;
+    padding: 0.45rem 0.05rem !important; line-height: 1.5 !important;
     transition: color 0.18s, border-color 0.18s !important;
     font-family: 'Inter', sans-serif !important;
+    white-space: nowrap !important; overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 div[data-testid="stHorizontalBlock"]:first-of-type .stButton button:hover {
     color: #AAA !important; border-bottom-color: #555 !important;
@@ -68,7 +70,7 @@ section[data-testid="stSidebar"] p { color: #666 !important; font-size: 0.68rem 
 }
 [data-testid="stMetricValue"] {
     font-family: 'Playfair Display', serif !important;
-    color: #C9A84C !important; font-size: 1.9rem !important;
+    color: #8A9E58 !important; font-size: 1.9rem !important;
 }
 
 [data-baseweb="input"] > div { background: #080808 !important; border-color: #1C1C1C !important; border-radius: 2px !important; }
@@ -85,28 +87,28 @@ label, .stSelectbox label, .stTextInput label, .stNumberInput label, .stTextArea
 [data-testid="stCheckbox"] label span { color: #999 !important; font-size: 0.76rem !important; }
 
 .stButton > button {
-    background: transparent !important; border: 1px solid #C9A84C !important;
-    color: #C9A84C !important; font-size: 0.65rem !important;
+    background: transparent !important; border: 1px solid #8A9E58 !important;
+    color: #8A9E58 !important; font-size: 0.65rem !important;
     letter-spacing: 0.14em !important; text-transform: uppercase !important;
     border-radius: 0 !important; padding: 0.5rem 1.4rem !important;
 }
-.stButton > button:hover { background: #C9A84C !important; color: #0C0C0C !important; }
+.stButton > button:hover { background: #8A9E58 !important; color: #0C0C0C !important; }
 [data-testid="stFormSubmitButton"] button {
-    background: #C9A84C !important; color: #0C0C0C !important;
+    background: #8A9E58 !important; color: #0C0C0C !important;
     border: none !important; font-weight: 600 !important;
     font-size: 0.65rem !important; letter-spacing: 0.14em !important;
     text-transform: uppercase !important; border-radius: 0 !important;
 }
 .stDownloadButton > button {
-    background: #C9A84C !important; color: #0C0C0C !important;
+    background: #8A9E58 !important; color: #0C0C0C !important;
     border: none !important; border-radius: 0 !important;
     font-size: 0.65rem !important; letter-spacing: 0.12em !important;
     text-transform: uppercase !important; font-weight: 600 !important;
 }
-.stDownloadButton > button:hover { background: #D4B85A !important; }
+.stDownloadButton > button:hover { background: #9BB068 !important; }
 
 div[data-testid="stProgressBar"] > div > div > div {
-    background: linear-gradient(90deg, #C9A84C 0%, #E8C96A 100%) !important;
+    background: linear-gradient(90deg, #8A9E58 0%, #A8BC78 100%) !important;
 }
 
 [data-baseweb="tab-list"] { background: transparent !important; border-bottom: 1px solid #181818 !important; }
@@ -115,17 +117,17 @@ button[data-baseweb="tab"] {
     font-size: 0.64rem !important; letter-spacing: 0.14em !important;
     text-transform: uppercase !important; padding: 0.7rem 1.2rem !important;
 }
-button[data-baseweb="tab"][aria-selected="true"] { color: #C9A84C !important; border-bottom: 2px solid #C9A84C !important; }
+button[data-baseweb="tab"][aria-selected="true"] { color: #8A9E58 !important; border-bottom: 2px solid #8A9E58 !important; }
 
 [data-testid="stForm"] { background: #070707 !important; border: 1px solid #131313 !important; border-radius: 2px !important; padding: 1.8rem !important; }
 details { border: 1px solid #131313 !important; border-radius: 2px !important; background: #070707 !important; }
-details summary { color: #C9A84C !important; font-size: 0.7rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; }
-[data-testid="stAlert"] { background: #070707 !important; border-radius: 2px !important; border-left: 2px solid #C9A84C !important; }
+details summary { color: #8A9E58 !important; font-size: 0.7rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; }
+[data-testid="stAlert"] { background: #070707 !important; border-radius: 2px !important; border-left: 2px solid #8A9E58 !important; }
 [data-testid="stAlert"] p { color: #888 !important; font-size: 0.76rem !important; }
 hr { border-color: #131313 !important; margin: 1.5rem 0 !important; }
 [data-testid="stDataFrame"] { border: 1px solid #131313 !important; border-radius: 2px !important; }
 [data-testid="stFileUploadDropzone"] { background: #070707 !important; border-color: #1C1C1C !important; border-radius: 2px !important; }
-code { background: #080808 !important; color: #C9A84C !important; border-radius: 2px !important; }
+code { background: #080808 !important; color: #8A9E58 !important; border-radius: 2px !important; }
 pre { background: #070707 !important; border: 1px solid #131313 !important; border-radius: 2px !important; }
 .stCaption p { color: #444 !important; font-size: 0.62rem !important; letter-spacing: 0.06em !important; }
 .stTextArea textarea { color: #D4CFC8 !important; }
@@ -143,15 +145,15 @@ pre { background: #070707 !important; border: 1px solid #131313 !important; bord
 @keyframes kwPageIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
 section.main > div { animation: kwPageIn 0.4s ease-out both; }
 
-.kw-nav-active { text-align: center; padding: 0.55rem 0.1rem; border-bottom: 1px solid #C9A84C; }
-.kw-nav-active-num { font-size: 0.58rem; color: #C9A84C; letter-spacing: 0.14em; font-family: 'Inter', sans-serif; text-transform: uppercase; }
-.kw-nav-active-label { font-size: 0.62rem; color: #C9A84C; margin-top: 0.12rem; font-family: 'Inter', sans-serif; }
+.kw-nav-active { text-align: center; padding: 0.45rem 0.05rem; border-bottom: 1px solid #8A9E58; }
+.kw-nav-active-num { font-size: 0.54rem; color: #8A9E58; letter-spacing: 0.08em; font-family: 'Inter', sans-serif; text-transform: uppercase; white-space: nowrap; }
+.kw-nav-active-label { font-size: 0.54rem; color: #8A9E58; margin-top: 0.1rem; font-family: 'Inter', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kw-nav-sep { width: 100%; height: 1px; background: #111; margin: 0 0 2rem 0; }
 
 /* AI generation box */
 .kw-ai-box {
-    border: 1px solid #C9A84C22;
-    border-left: 3px solid #C9A84C;
+    border: 1px solid #8A9E5822;
+    border-left: 3px solid #8A9E58;
     background: #0A0A08;
     padding: 1.5rem;
     border-radius: 2px;
@@ -196,11 +198,11 @@ STEPS = [
     ("partner",  "Invite"),
     ("qa",       "Partner A"),
     ("qb",       "Partner B"),
-    ("assets",   "Financials"),
-    ("risk",     "Dashboard"),
-    ("draft",    "AI Draft"),
-    ("signoff",  "Sign Off"),
-    ("final",    "Final PDF"),
+    ("assets",   "Assets"),
+    ("risk",     "Risk"),
+    ("draft",    "Draft"),
+    ("signoff",  "Signoff"),
+    ("final",    "Final"),
 ]
 STEP_KEYS = [s[0] for s in STEPS]
 
@@ -261,11 +263,11 @@ def render_sidebar():
     risk, _ = risk_level(score)
     st.sidebar.metric("Readiness", f"{score}/100")
     st.sidebar.progress(score / 100)
-    st.sidebar.markdown(f'<p style="font-size:0.6rem;color:#C9A84C;letter-spacing:0.1em;margin:0.2rem 0 0.8rem 0">{risk} risk</p>', unsafe_allow_html=True)
+    st.sidebar.markdown(f'<p style="font-size:0.6rem;color:#8A9E58;letter-spacing:0.1em;margin:0.2rem 0 0.8rem 0">{risk} risk</p>', unsafe_allow_html=True)
     st.sidebar.divider()
     for label, key in [("Case Setup","setup"),("Partner Invited","partner"),("Partner A","qa"),("Partner B","qb"),("Assets & Debts","assets"),("Preferences Set","risk"),("AI Draft","draft"),("Both Signed Off","signoff")]:
         done = step_done(key)
-        color = "#C9A84C" if done else "#444"
+        color = "#8A9E58" if done else "#444"
         icon  = "●" if done else "○"
         st.sidebar.markdown(f'<p style="color:{color};font-size:0.68rem;margin:0.3rem 0;letter-spacing:0.04em">{icon}&nbsp; {label}</p>', unsafe_allow_html=True)
     st.sidebar.divider()
@@ -294,10 +296,10 @@ def money(v):
     except: return "$0.00"
 
 def eyebrow(text):
-    st.markdown(f'<p style="font-size:0.6rem;letter-spacing:0.28em;text-transform:uppercase;color:#C9A84C;margin-bottom:0.15rem">{text}</p>', unsafe_allow_html=True)
+    st.markdown(f'<p style="font-size:0.6rem;letter-spacing:0.28em;text-transform:uppercase;color:#8A9E58;margin-bottom:0.15rem">{text}</p>', unsafe_allow_html=True)
 
 def gold_rule():
-    st.markdown('<div style="width:34px;height:1px;background:#C9A84C;margin:0.4rem 0 1.3rem 0"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="width:34px;height:1px;background:#8A9E58;margin:0.4rem 0 1.3rem 0"></div>', unsafe_allow_html=True)
 
 def li(text):
     st.markdown(f'<p style="color:#777;font-size:0.78rem;margin:0.22rem 0;line-height:1.6">— {text}</p>', unsafe_allow_html=True)
@@ -531,10 +533,10 @@ def build_pdf_bytes():
     class KWDoc(FPDF):
         def header(self):
             self.set_font("Helvetica", "B", 7.5)
-            self.set_text_color(180, 160, 80)
+            self.set_text_color(138, 158, 88)
             self.cell(0, 7, "KNOTWISE  |  PRENUPTIAL AGREEMENT PREPARATION DRAFT", align="C")
             self.ln(1)
-            self.set_draw_color(180, 160, 80)
+            self.set_draw_color(138, 158, 88)
             self.set_line_width(0.2)
             self.line(15, self.get_y(), 195, self.get_y())
             self.ln(5)
@@ -566,7 +568,7 @@ def build_pdf_bytes():
 
     # Info box
     pdf.set_fill_color(250, 250, 248)
-    pdf.set_draw_color(220, 210, 180)
+    pdf.set_draw_color(180, 195, 150)
     pdf.set_line_width(0.3)
     box_y = pdf.get_y()
     pdf.rect(15, box_y, 180, 26, style="FD")
@@ -580,7 +582,7 @@ def build_pdf_bytes():
     pdf.cell(88, 5, pdf_safe(f"Jurisdiction: {case.get('jurisdictions','')}"))
     pdf.set_x(20); pdf.ln(6)
     pdf.set_font("Helvetica", "I", 7.5)
-    pdf.set_text_color(160, 140, 60)
+    pdf.set_text_color(120, 145, 70)
     pdf.cell(0, 5, pdf_safe(f"Agreement Theme: {theme}"))
     pdf.ln(10)
 
@@ -598,7 +600,7 @@ def build_pdf_bytes():
         if is_header:
             pdf.ln(2)
             pdf.set_font("Helvetica", "B", 10)
-            pdf.set_text_color(160, 130, 50)
+            pdf.set_text_color(120, 145, 70)
             pdf.multi_cell(0, 6, line)
             pdf.set_font("Helvetica", "", 9.5)
             pdf.set_text_color(25, 25, 25)
@@ -611,7 +613,7 @@ def build_pdf_bytes():
     pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(20, 20, 20)
     pdf.cell(0, 10, "ACKNOWLEDGMENT & SIGN-OFF", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_draw_color(180, 160, 80)
+    pdf.set_draw_color(138, 158, 88)
     pdf.set_line_width(0.4)
     pdf.line(15, pdf.get_y(), 195, pdf.get_y())
     pdf.ln(6)
@@ -630,7 +632,7 @@ def build_pdf_bytes():
     ]:
         pdf.set_xy(x_off, y)
         pdf.set_font("Helvetica", "B", 8.5)
-        pdf.set_text_color(160, 130, 50)
+        pdf.set_text_color(120, 145, 70)
         pdf.cell(80, 6, partner_label)
         pdf.set_xy(x_off, y + 8)
         pdf.set_font("Helvetica", "", 8.5)
@@ -658,7 +660,7 @@ def build_pdf_bytes():
 
     # Disclaimer box
     pdf.set_fill_color(252, 252, 250)
-    pdf.set_draw_color(220, 210, 180)
+    pdf.set_draw_color(180, 195, 150)
     pdf.set_line_width(0.2)
     pdf.set_font("Helvetica", "I", 7)
     pdf.set_text_color(140, 130, 100)
@@ -737,7 +739,7 @@ def partner_form(label, state_key):
             has_children_prior = st.checkbox("Has children from prior relationship", value=existing.get("has_children_prior",False))
             supports_family    = st.checkbox("Financially supports family members", value=existing.get("supports_family",False))
         st.markdown("---")
-        st.markdown('<p style="font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#C9A84C;margin-bottom:0.8rem">Prenup Preferences</p>', unsafe_allow_html=True)
+        st.markdown('<p style="font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#8A9E58;margin-bottom:0.8rem">Prenup Preferences</p>', unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         with c1:
             premarital_assets   = st.selectbox("Premarital assets",          ["Keep separate","Share after marriage","Discuss with attorney"], key=f"{state_key}_pre")
@@ -962,14 +964,14 @@ elif page == "risk":
     c2.metric("Risk Level", risk)
     c3.metric("Conflicts", len(conflicts))
     c4.metric("Missing Docs", len(missing))
-    st.markdown(f'<p style="font-size:0.76rem;color:#C9A84C;letter-spacing:0.08em;margin:1rem 0 0.5rem 0">{label}</p>', unsafe_allow_html=True)
+    st.markdown(f'<p style="font-size:0.76rem;color:#8A9E58;letter-spacing:0.08em;margin:1rem 0 0.5rem 0">{label}</p>', unsafe_allow_html=True)
     st.progress(score / 100)
     st.markdown("---")
     cl, cr = st.columns(2, gap="large")
     with cl:
         with st.expander("Score Breakdown", expanded=True):
             for item in explanation:
-                color = "#C9A84C" if "(+0)" not in item else "#333"
+                color = "#8A9E58" if "(+0)" not in item else "#333"
                 st.markdown(f'<p style="color:{color};font-size:0.76rem;margin:0.22rem 0">— {item}</p>', unsafe_allow_html=True)
         st.markdown("---")
         st.markdown('<p style="font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;color:#555;margin-bottom:0.5rem">Missing Documents</p>', unsafe_allow_html=True)
@@ -996,7 +998,7 @@ elif page == "draft":
         gold_rule()
         theme = detect_theme()
         st.markdown(f"Gemini AI will fill the prenup template using all captured questionnaire data. The AI runs **once** and the result is cached — it will not re-run unless you explicitly regenerate.")
-        st.markdown(f'<p style="font-size:0.72rem;color:#C9A84C;margin-top:0.8rem">Detected theme: <strong>{theme}</strong></p>', unsafe_allow_html=True)
+        st.markdown(f'<p style="font-size:0.72rem;color:#8A9E58;margin-top:0.8rem">Detected theme: <strong>{theme}</strong></p>', unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -1009,12 +1011,12 @@ elif page == "draft":
         st.markdown('<div class="kw-lock-box">', unsafe_allow_html=True)
         st.markdown('<p style="color:#555;font-size:0.8rem;margin-bottom:0.6rem">Complete the following steps before generating the AI draft:</p>', unsafe_allow_html=True)
         for s in missing_steps:
-            st.markdown(f'<p style="color:#C9A84C;font-size:0.78rem;margin:0.2rem 0">— {s}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="color:#8A9E58;font-size:0.78rem;margin:0.2rem 0">— {s}</p>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         if not st.session_state.ai_draft:
             st.markdown('<div class="kw-ai-box">', unsafe_allow_html=True)
-            st.markdown('<p style="color:#999;font-size:0.82rem;margin-bottom:1rem">All required data is captured. Click below to generate your AI prenup draft. This will make <strong style="color:#C9A84C">one API call</strong> to Google Gemini and cache the result.</p>', unsafe_allow_html=True)
+            st.markdown('<p style="color:#999;font-size:0.82rem;margin-bottom:1rem">All required data is captured. Click below to generate your AI prenup draft. This will make <strong style="color:#8A9E58">one API call</strong> to Google Gemini and cache the result.</p>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
             if st.button("Generate AI Draft", use_container_width=False):
                 with st.spinner("Gemini is drafting your prenup…"):
@@ -1056,7 +1058,7 @@ elif page == "signoff":
         pb = st.session_state.partner_b
 
         with c1:
-            st.markdown('<p style="font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#C9A84C;margin-bottom:0.8rem">Partner A Acknowledgment</p>', unsafe_allow_html=True)
+            st.markdown('<p style="font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#8A9E58;margin-bottom:0.8rem">Partner A Acknowledgment</p>', unsafe_allow_html=True)
             with st.form("signoff_a_form"):
                 sa_name  = st.text_input("Full Name", value=st.session_state.signoff_a.get("name", pa.get("name","")), key="sa_name")
                 sa_agree = st.checkbox("I have reviewed this preparation draft and understand it is not a final legal document and requires attorney review before execution.", value=st.session_state.signoff_a.get("agreed", False), key="sa_agree")
@@ -1068,10 +1070,10 @@ elif page == "signoff":
                 else:
                     st.error("Please check the acknowledgment box to confirm.")
             if st.session_state.signoff_a.get("agreed"):
-                st.markdown(f'<p style="color:#C9A84C;font-size:0.76rem;margin-top:0.5rem">✓ Signed off — {st.session_state.signoff_a.get("timestamp","")}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="color:#8A9E58;font-size:0.76rem;margin-top:0.5rem">✓ Signed off — {st.session_state.signoff_a.get("timestamp","")}</p>', unsafe_allow_html=True)
 
         with c2:
-            st.markdown('<p style="font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#C9A84C;margin-bottom:0.8rem">Partner B Acknowledgment</p>', unsafe_allow_html=True)
+            st.markdown('<p style="font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#8A9E58;margin-bottom:0.8rem">Partner B Acknowledgment</p>', unsafe_allow_html=True)
             with st.form("signoff_b_form"):
                 sb_name  = st.text_input("Full Name", value=st.session_state.signoff_b.get("name", pb.get("name","")), key="sb_name")
                 sb_agree = st.checkbox("I have reviewed this preparation draft and understand it is not a final legal document and requires attorney review before execution.", value=st.session_state.signoff_b.get("agreed", False), key="sb_agree")
@@ -1083,7 +1085,7 @@ elif page == "signoff":
                 else:
                     st.error("Please check the acknowledgment box to confirm.")
             if st.session_state.signoff_b.get("agreed"):
-                st.markdown(f'<p style="color:#C9A84C;font-size:0.76rem;margin-top:0.5rem">✓ Signed off — {st.session_state.signoff_b.get("timestamp","")}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="color:#8A9E58;font-size:0.76rem;margin-top:0.5rem">✓ Signed off — {st.session_state.signoff_b.get("timestamp","")}</p>', unsafe_allow_html=True)
 
         both_signed = st.session_state.signoff_a.get("agreed") and st.session_state.signoff_b.get("agreed")
         if both_signed:
