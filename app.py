@@ -73,36 +73,74 @@ section[data-testid="stSidebar"] p { color: #AAA !important; font-size: 0.76rem 
 }
 
 [data-baseweb="input"] > div { background: #080808 !important; border-color: #1C1C1C !important; border-radius: 2px !important; }
-[data-baseweb="textarea"] { background: #080808 !important; border-color: #1C1C1C !important; border-radius: 2px !important; }
-input, textarea { color: #D4CFC8 !important; font-family: 'Inter', sans-serif !important; }
-[data-baseweb="select"] > div { background: #080808 !important; border-color: #1C1C1C !important; border-radius: 2px !important; color: #D4CFC8 !important; }
-[data-baseweb="menu"] { background: #111 !important; border: 1px solid #1E1E1E !important; }
-[data-baseweb="menu"] li { background: #111 !important; color: #D4CFC8 !important; }
-[data-baseweb="menu"] li:hover { background: #181818 !important; }
-label, .stSelectbox label, .stTextInput label, .stNumberInput label, .stTextArea label {
-    color: #777 !important; font-size: 0.64rem !important;
-    letter-spacing: 0.1em !important; text-transform: uppercase !important;
-}
-[data-testid="stCheckbox"] label span { color: #999 !important; font-size: 0.76rem !important; }
+/* ── Inputs & textareas ── */
+[data-baseweb="input"] { background: #0E0E0E !important; border-color: #252525 !important; border-radius: 2px !important; }
+[data-baseweb="input"] input { color: #E8E4DE !important; font-size: 0.9rem !important; font-family: 'Inter', sans-serif !important; background: transparent !important; }
+[data-baseweb="textarea"] { background: #0E0E0E !important; border-color: #252525 !important; border-radius: 2px !important; }
+[data-baseweb="textarea"] textarea { color: #E8E4DE !important; font-size: 0.9rem !important; font-family: 'Inter', sans-serif !important; background: transparent !important; caret-color: #8A9E58 !important; }
+input, textarea { color: #E8E4DE !important; font-family: 'Inter', sans-serif !important; }
+input::placeholder, textarea::placeholder { color: #3A3A3A !important; }
 
+/* ── Select ── */
+[data-baseweb="select"] > div { background: #0E0E0E !important; border-color: #252525 !important; border-radius: 2px !important; }
+[data-baseweb="select"] [data-baseweb="select"] > div { background: #0E0E0E !important; }
+div[data-baseweb="select"] > div > div { color: #E8E4DE !important; font-size: 0.9rem !important; }
+[data-baseweb="menu"] { background: #141414 !important; border: 1px solid #252525 !important; border-radius: 2px !important; }
+[data-baseweb="menu"] li { background: #141414 !important; color: #C8C4BE !important; font-size: 0.85rem !important; }
+[data-baseweb="menu"] li:hover { background: #1C1C1C !important; color: #E8E4DE !important; }
+[data-baseweb="menu"] [aria-selected="true"] { background: #1A1A1A !important; color: #8A9E58 !important; }
+
+/* ── Number input stepper buttons — keep neutral, not olive ── */
+[data-testid="stNumberInput"] button {
+    background: #141414 !important; border: 1px solid #252525 !important;
+    color: #888 !important; border-radius: 2px !important;
+    font-size: 0.8rem !important; padding: 0.3rem 0.6rem !important;
+    letter-spacing: 0 !important; text-transform: none !important;
+}
+[data-testid="stNumberInput"] button:hover { background: #1E1E1E !important; color: #CCC !important; }
+
+/* ── Labels ── */
+label, .stSelectbox label, .stTextInput label, .stNumberInput label, .stTextArea label {
+    color: #888 !important; font-size: 0.66rem !important;
+    letter-spacing: 0.1em !important; text-transform: uppercase !important;
+    font-weight: 500 !important;
+}
+[data-testid="stCheckbox"] label span { color: #B0ACA6 !important; font-size: 0.82rem !important; }
+
+/* ── Action buttons (outline style) ── */
+.stButton > button:not([data-testid]) {
+    background: transparent !important; border: 1px solid #8A9E58 !important;
+    color: #8A9E58 !important; font-size: 0.68rem !important;
+    letter-spacing: 0.12em !important; text-transform: uppercase !important;
+    border-radius: 0 !important; padding: 0.55rem 1.4rem !important;
+    font-weight: 500 !important;
+}
 .stButton > button {
     background: transparent !important; border: 1px solid #8A9E58 !important;
-    color: #8A9E58 !important; font-size: 0.65rem !important;
-    letter-spacing: 0.14em !important; text-transform: uppercase !important;
-    border-radius: 0 !important; padding: 0.5rem 1.4rem !important;
+    color: #8A9E58 !important; font-size: 0.68rem !important;
+    letter-spacing: 0.12em !important; text-transform: uppercase !important;
+    border-radius: 0 !important; padding: 0.55rem 1.4rem !important;
+    font-weight: 500 !important;
 }
-.stButton > button:hover { background: #8A9E58 !important; color: #0C0C0C !important; }
+.stButton > button:hover { background: #8A9E58 !important; color: #050505 !important; }
+
+/* ── Form submit — filled olive ── */
 [data-testid="stFormSubmitButton"] button {
-    background: #8A9E58 !important; color: #0C0C0C !important;
-    border: none !important; font-weight: 600 !important;
-    font-size: 0.65rem !important; letter-spacing: 0.14em !important;
+    background: #8A9E58 !important; color: #050505 !important;
+    border: none !important; font-weight: 700 !important;
+    font-size: 0.72rem !important; letter-spacing: 0.12em !important;
     text-transform: uppercase !important; border-radius: 0 !important;
+    padding: 0.65rem 2rem !important;
 }
+[data-testid="stFormSubmitButton"] button:hover { background: #9BB068 !important; }
+
+/* ── Download button ── */
 .stDownloadButton > button {
-    background: #8A9E58 !important; color: #0C0C0C !important;
+    background: #8A9E58 !important; color: #050505 !important;
     border: none !important; border-radius: 0 !important;
-    font-size: 0.65rem !important; letter-spacing: 0.12em !important;
-    text-transform: uppercase !important; font-weight: 600 !important;
+    font-size: 0.72rem !important; letter-spacing: 0.12em !important;
+    text-transform: uppercase !important; font-weight: 700 !important;
+    padding: 0.65rem 2rem !important;
 }
 .stDownloadButton > button:hover { background: #9BB068 !important; }
 
@@ -112,9 +150,10 @@ div[data-testid="stProgressBar"] > div > div > div {
 
 [data-baseweb="tab-list"] { background: transparent !important; border-bottom: 1px solid #181818 !important; }
 button[data-baseweb="tab"] {
-    background: transparent !important; color: #2A2A2A !important;
-    font-size: 0.64rem !important; letter-spacing: 0.14em !important;
+    background: transparent !important; color: #777 !important;
+    font-size: 0.66rem !important; letter-spacing: 0.1em !important;
     text-transform: uppercase !important; padding: 0.7rem 1.2rem !important;
+    font-weight: 500 !important;
 }
 button[data-baseweb="tab"][aria-selected="true"] { color: #8A9E58 !important; border-bottom: 2px solid #8A9E58 !important; }
 
