@@ -36,17 +36,16 @@ html, body, [data-testid="stAppViewContainer"] {
 /* Nav row */
 div[data-testid="stHorizontalBlock"]:first-of-type .stButton button {
     background: transparent !important; border: none !important;
-    border-bottom: 1px solid #282828 !important; border-radius: 0 !important;
-    color: #666 !important; font-size: 0.54rem !important;
-    letter-spacing: 0.08em !important; text-transform: uppercase !important;
-    padding: 0.45rem 0.05rem !important; line-height: 1.5 !important;
-    transition: color 0.18s, border-color 0.18s !important;
+    border-bottom: 1px solid #2E2E2E !important; border-radius: 0 !important;
+    color: #888 !important; font-size: 0.65rem !important;
+    letter-spacing: 0.06em !important; text-transform: uppercase !important;
+    padding: 0.65rem 0.2rem !important; line-height: 1.6 !important;
+    transition: color 0.2s, border-color 0.2s !important;
     font-family: 'Inter', sans-serif !important;
-    white-space: nowrap !important; overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
 }
 div[data-testid="stHorizontalBlock"]:first-of-type .stButton button:hover {
-    color: #AAA !important; border-bottom-color: #555 !important;
+    color: #CCC !important; border-bottom-color: #666 !important;
 }
 
 h1, h2, h3, h4 {
@@ -58,7 +57,7 @@ h2 { font-size: 1.7rem !important; }
 p, li { color: #999 !important; line-height: 1.75 !important; }
 
 section[data-testid="stSidebar"] h2 { font-size: 1.4rem !important; color: #F0EBE3 !important; }
-section[data-testid="stSidebar"] p { color: #666 !important; font-size: 0.68rem !important; }
+section[data-testid="stSidebar"] p { color: #AAA !important; font-size: 0.76rem !important; }
 
 [data-testid="metric-container"] {
     background: #0A0A0A !important; border: 1px solid #161616 !important;
@@ -131,7 +130,7 @@ code { background: #080808 !important; color: #8A9E58 !important; border-radius:
 pre { background: #070707 !important; border: 1px solid #131313 !important; border-radius: 2px !important; }
 .stCaption p { color: #444 !important; font-size: 0.62rem !important; letter-spacing: 0.06em !important; }
 .stTextArea textarea { color: #D4CFC8 !important; }
-.block-container { padding: 1.5rem 2.5rem 2.5rem !important; max-width: 1200px !important; }
+.block-container { padding: 2.5rem 2.5rem 2.5rem !important; max-width: 1200px !important; }
 
 /* Hero containers */
 .kw-hero { position: relative; width: 100%; overflow: hidden; border-radius: 2px; margin-bottom: 2rem; }
@@ -145,9 +144,9 @@ pre { background: #070707 !important; border: 1px solid #131313 !important; bord
 @keyframes kwPageIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
 section.main > div { animation: kwPageIn 0.4s ease-out both; }
 
-.kw-nav-active { text-align: center; padding: 0.45rem 0.05rem; border-bottom: 1px solid #8A9E58; }
-.kw-nav-active-num { font-size: 0.54rem; color: #8A9E58; letter-spacing: 0.08em; font-family: 'Inter', sans-serif; text-transform: uppercase; white-space: nowrap; }
-.kw-nav-active-label { font-size: 0.54rem; color: #8A9E58; margin-top: 0.1rem; font-family: 'Inter', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kw-nav-active { text-align: center; padding: 0.65rem 0.2rem; border-bottom: 2px solid #8A9E58; }
+.kw-nav-active-num { font-size: 0.65rem; color: #8A9E58; letter-spacing: 0.06em; font-family: 'Inter', sans-serif; text-transform: uppercase; white-space: nowrap; }
+.kw-nav-active-label { font-size: 0.65rem; color: #8A9E58; margin-top: 0.1rem; font-family: 'Inter', sans-serif; white-space: nowrap; font-weight: 500; }
 .kw-nav-sep { width: 100%; height: 1px; background: #111; margin: 0 0 2rem 0; }
 
 /* AI generation box */
@@ -267,9 +266,9 @@ def render_sidebar():
     st.sidebar.divider()
     for label, key in [("Case Setup","setup"),("Partner Invited","partner"),("Partner A","qa"),("Partner B","qb"),("Assets & Debts","assets"),("Preferences Set","risk"),("AI Draft","draft"),("Both Signed Off","signoff")]:
         done = step_done(key)
-        color = "#8A9E58" if done else "#444"
+        color = "#8A9E58" if done else "#888"
         icon  = "●" if done else "○"
-        st.sidebar.markdown(f'<p style="color:{color};font-size:0.68rem;margin:0.3rem 0;letter-spacing:0.04em">{icon}&nbsp; {label}</p>', unsafe_allow_html=True)
+        st.sidebar.markdown(f'<p style="color:{color};font-size:0.78rem;margin:0.35rem 0;letter-spacing:0.03em">{icon}&nbsp; {label}</p>', unsafe_allow_html=True)
     st.sidebar.divider()
     st.sidebar.caption("Academic prototype only. Not legal advice.")
 
