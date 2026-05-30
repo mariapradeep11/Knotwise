@@ -567,7 +567,7 @@ def call_gemini():
         if not key:
             return None, "API key not configured. Add `knotwise_gemini_key` to Streamlit secrets."
         genai.configure(api_key=key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(build_prenup_prompt())
         st.session_state.ai_draft = response.text
         return response.text, None
@@ -867,9 +867,6 @@ elif page == "setup":
             st.session_state.case_created = True
             st.session_state.ai_draft = None  # reset draft if case changes
             st.success("Case setup saved.")
-        if st.session_state.case_created:
-            st.markdown("---")
-            st.json(st.session_state.case)
 
 
 # 3. ADD PARTNER ───────────────────────────────────────────────────────────
