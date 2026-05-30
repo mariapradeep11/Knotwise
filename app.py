@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import date, datetime
 from io import BytesIO
 import base64
+import json
 from pathlib import Path
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -217,8 +218,52 @@ section.main > div { animation: kwPageIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) bot
 """, unsafe_allow_html=True)
 
 
+# ── Persistence ───────────────────────────────────────────────────────────
+_SAVE_FILE = Path("knotwise_save.json")
+_SAVE_KEYS = [
+    "page", "case_created", "case",
+    "partner_a", "partner_b",
+    "assets_a", "assets_b",
+    "debts_a", "debts_b",
+    "goals_a", "goals_b",
+    "uploaded_docs", "partner_invited", "invite_email",
+    "ai_draft", "signoff_a", "signoff_b",
+]
+
+def save_state():
+    try:
+        _SAVE_FILE.write_text(
+            json.dumps({k: st.session_state.get(k) for k in _SAVE_KEYS}, default=str)
+        )
+    except Exception:
+        pass
+
+def _load_persisted():
+    if not _SAVE_FILE.exists():
+        return
+    try:
+        saved = json.loads(_SAVE_FILE.read_text())
+        for k, v in saved.items():
+            if k in _SAVE_KEYS:
+                st.session_state[k] = v
+    except Exception:
+        pass
+
+def clear_state():
+    if _SAVE_FILE.exists():
+        _SAVE_FILE.unlink()
+    for k in _SAVE_KEYS:
+        st.session_state.pop(k, None)
+    st.session_state.pop("_state_loaded", None)
+
+
 # ── Session State ─────────────────────────────────────────────────────────
 def init_state():
+    # Load from disk once per browser session (not on every rerun)
+    if "_state_loaded" not in st.session_state:
+        st.session_state["_state_loaded"] = True
+        _load_persisted()
+
     defaults = {
         "page": "welcome",
         "case_created": False, "case": {},
@@ -274,6 +319,7 @@ def ai_ready():
 
 def go(key):
     st.session_state.page = key
+    save_state()
     st.rerun()
 
 def render_nav():
@@ -324,6 +370,34 @@ def render_sidebar():
     st.sidebar.divider()
     if st.sidebar.button("📋 Project Documentation", use_container_width=True, key="nav_ref"):
         go("ref")
+
+    # ── Persistence status + reset ────────────────────────────────────────
+    if _SAVE_FILE.exists():
+        try:
+            mtime = datetime.fromtimestamp(_SAVE_FILE.stat().st_mtime).strftime("%-I:%M %p")
+            st.sidebar.markdown(
+                f'<p style="font-size:0.58rem;color:#333;letter-spacing:0.06em;margin:0.6rem 0 0.2rem 0">'
+                f'AUTO-SAVED {mtime}</p>', unsafe_allow_html=True)
+        except Exception:
+            pass
+
+    if "confirm_reset" not in st.session_state:
+        st.session_state.confirm_reset = False
+
+    if not st.session_state.confirm_reset:
+        if st.sidebar.button("↺ Start New Case", use_container_width=True, key="reset_btn"):
+            st.session_state.confirm_reset = True
+            st.rerun()
+    else:
+        st.sidebar.warning("This will erase all saved data.")
+        c1, c2 = st.sidebar.columns(2)
+        if c1.button("Erase", use_container_width=True, key="confirm_erase"):
+            clear_state()
+            st.rerun()
+        if c2.button("Cancel", use_container_width=True, key="cancel_erase"):
+            st.session_state.confirm_reset = False
+            st.rerun()
+
     st.sidebar.caption("Academic prototype only. Not legal advice.")
 
 
@@ -561,22 +635,662 @@ This Agreement reflects the preliminary preferences and disclosures of both part
 Output only the filled-in document. No preamble, no closing commentary, no meta-notes. Start directly with "PRENUPTIAL AGREEMENT — PREPARATION DRAFT"."""
 
 
-# ── AI: Gemini call (cached) ──────────────────────────────────────────────
+# ── Local draft generator (no API quota) ─────────────────────────────────
+def generate_draft_locally():
+    case  = st.session_state.case
+    pa, pb = st.session_state.partner_a, st.session_state.partner_b
+    ga, gb = st.session_state.goals_a,   st.session_state.goals_b
+    theme  = detect_theme()
+    conflicts = detect_conflicts()
+    score, _ = completion_score()
+    risk, risk_label = risk_level(score)
+    missing_docs = missing_documents()
+
+    na    = pa.get("name", "Partner A")
+    nb    = pb.get("name", "Partner B")
+    loc   = case.get("future_residence", case.get("current_residence", "[location]"))
+    jur   = case.get("jurisdictions", loc)
+    wdate = case.get("wedding_date", "[date to be confirmed]")
+    now_str = datetime.now().strftime("%B %d, %Y at %I:%M %p")
+
+    def _p(goals, key):
+        return goals.get(key, "Not specified")
+
+    # ── Option clause builders ─────────────────────────────────────────────
+    def income_clause():
+        ap, bp = _p(ga,'future_income'), _p(gb,'future_income')
+        if 'Shared' in ap and 'Shared' in bp:
+            return "AGREED — Income earned by either Party during the marriage shall be treated as Marital Property."
+        if 'Separate' in ap and 'Separate' in bp:
+            return "AGREED — Income earned by each Party shall remain that Party's Separate Property unless deposited into a joint account or used for joint expenses."
+        return f"ATTORNEY REVIEW REQUIRED — The Parties have not reached consistent agreement. {na}: {ap}. {nb}: {bp}."
+
+    def sep_prop_clause():
+        ap, bp = _p(ga,'premarital_assets'), _p(gb,'premarital_assets')
+        if 'Keep separate' in ap and 'Keep separate' in bp:
+            return "AGREED — All premarital property shall remain the Separate Property of the owning Party."
+        if 'Share' in ap or 'Share' in bp:
+            return f"ATTORNEY REVIEW REQUIRED — One or both Parties indicated a preference for sharing premarital property. {na}: {ap}. {nb}: {bp}."
+        return f"ATTORNEY REVIEW REQUIRED — Premarital asset treatment requires further discussion. {na}: {ap}. {nb}: {bp}."
+
+    def biz_clause():
+        ap, bp = _p(ga,'business_growth'), _p(gb,'business_growth')
+        if 'Keep separate' in ap and 'Keep separate' in bp:
+            return "AGREED — All appreciation of Business Interests, including retained earnings, goodwill, and proceeds, shall remain Separate Property."
+        if 'Share' in ap or 'Share' in bp:
+            return f"ATTORNEY REVIEW REQUIRED — One or both Parties indicated a preference for sharing business appreciation. {na}: {ap}. {nb}: {bp}."
+        return f"PASSIVE APPRECIATION SEPARATE; ACTIVE APPRECIATION REVIEWED — Passive appreciation shall remain Separate Property. Appreciation from marital labour or contribution during marriage may be subject to review. {na}: {ap}. {nb}: {bp}."
+
+    def spousal_clause():
+        ap, bp = _p(ga,'spousal_support'), _p(gb,'spousal_support')
+        if 'Waived' in ap and 'Waived' in bp:
+            return "AGREED — WAIVER: Each Party waives the right to seek spousal support, alimony, or maintenance from the other Party to the fullest extent permitted by applicable law."
+        if 'Limited' in ap and 'Limited' in bp:
+            return "AGREED — LIMITED: Spousal support may be available under limited circumstances to be defined with attorney review."
+        if 'Reserved' in ap or 'Reserved' in bp:
+            return "RIGHTS RESERVED — The Parties do not waive spousal support. Any claim shall be determined under applicable law at the time of separation or divorce."
+        return f"ATTORNEY REVIEW REQUIRED — The Parties have not reached agreement. {na}: {ap}. {nb}: {bp}."
+
+    def home_clause():
+        ap, bp = _p(ga,'home_purchase'), _p(gb,'home_purchase')
+        if 'Shared' in ap and 'Shared' in bp:
+            return "AGREED — Any residence purchased jointly after marriage shall be treated as Marital Property and divided equally unless otherwise agreed."
+        if 'contribution' in ap.lower() or 'contribution' in bp.lower():
+            return "AGREED — Any residence purchased after marriage shall be owned according to each Party's documented financial contribution unless otherwise titled."
+        return f"ATTORNEY REVIEW REQUIRED — Future home purchase terms require further discussion. {na}: {ap}. {nb}: {bp}."
+
+    def inheritance_clause():
+        ap, bp = _p(ga,'inheritance'), _p(gb,'inheritance')
+        if 'Keep separate' in ap and 'Keep separate' in bp:
+            return "AGREED — Inheritance and family gifts shall remain the Separate Property of the receiving Party."
+        if 'Share' in ap or 'Share' in bp:
+            return "PARTIALLY AGREED — Inheritance or gifts used for joint purposes may be treated as Marital Property. Documentation of intent at time of use is strongly recommended."
+        return f"ATTORNEY REVIEW REQUIRED — Inheritance treatment requires further discussion. {na}: {ap}. {nb}: {bp}."
+
+    # ── Asset/Debt formatters ──────────────────────────────────────────────
+    def fmt_assets(lst, owner_name):
+        if not lst:
+            return f"  No premarital assets disclosed by {owner_name}."
+        return "\n".join(
+            f"  • {a.get('asset_type','Asset')}: {a.get('description','')} "
+            f"| Location: {a.get('location','')} "
+            f"| Est. Value: {money(a.get('value',0))} "
+            f"| Preference: {a.get('preference','Separate property')}"
+            for a in lst)
+
+    def fmt_debts(lst, owner_name):
+        if not lst:
+            return f"  No premarital debts disclosed by {owner_name}."
+        return "\n".join(
+            f"  • {d.get('debt_type','Debt')}: {d.get('description','')} "
+            f"| Balance: {money(d.get('balance',0))} "
+            f"| Responsibility: {d.get('preference','Owner remains responsible')}"
+            for d in lst)
+
+    # ── Preference status (Schedule C) ────────────────────────────────────
+    def pref_status(key):
+        av, bv = ga.get(key,''), gb.get(key,'')
+        if not av or not bv:                              return "Pending"
+        if av == bv and 'Discuss' not in av:              return "Agreed"
+        if 'Discuss' in av or 'Discuss' in bv:            return "Attorney Review Required"
+        return "Conflict — Attorney Review Required"
+
+    # ── Attorney review flags (Schedule D) ───────────────────────────────
+    flags = []
+    for c in conflicts:
+        flags.append(
+            f"Preference conflict — {c['Topic']}: {na} prefers '{c['Partner A']}'; "
+            f"{nb} prefers '{c['Partner B']}' (Severity: {c['Severity']})")
+    for goals, pname in [(ga, na), (gb, nb)]:
+        for key, label in [('premarital_assets','Premarital Assets'),
+                           ('future_income','Future Income'),
+                           ('business_growth','Business Growth'),
+                           ('spousal_support','Spousal Support')]:
+            if 'Discuss' in goals.get(key,'') or 'attorney' in goals.get(key,'').lower():
+                flag = f"{pname} requested attorney review for: {label}"
+                if flag not in flags:
+                    flags.append(flag)
+    if case.get('cross_border'):
+        flags.append(f"Cross-border assets or multiple jurisdictions identified ({jur}) — international counsel recommended")
+    for has_biz, pname in [(pa.get('owns_business'), na), (pb.get('owns_business'), nb)]:
+        if has_biz:
+            flags.append(f"{pname} owns a business interest — professional valuation and attorney review required")
+    if pa.get('has_children_prior') or pb.get('has_children_prior'):
+        flags.append("One or both Parties have children from prior relationships — estate planning and support provisions should be reviewed with counsel")
+    if not flags:
+        flags.append("No major conflicts detected. Standard attorney review still recommended before execution.")
+    flags_text = "\n".join(f"  {i+1}. {f}" for i, f in enumerate(flags))
+
+    # ── Document checklist (Schedule E) ──────────────────────────────────
+    uploaded_types = {d["type"] for d in st.session_state.uploaded_docs}
+    def chk(doc_type):
+        return "[x]" if doc_type in uploaded_types else "[ ]"
+    cross_border_doc_line = (
+        "[x] Cross-border asset documentation" if case.get("cross_border")
+        else "[ ] Cross-border asset documentation (if applicable)")
+
+    # ── Schedule C rows ───────────────────────────────────────────────────
+    pref_keys = [
+        ('premarital_assets',   'Premarital Assets'),
+        ('future_income',       'Future Income'),
+        ('business_growth',     'Business Growth'),
+        ('debt_responsibility', 'Debt Responsibility'),
+        ('spousal_support',     'Spousal Support'),
+        ('inheritance',         'Inheritance / Gifts'),
+        ('home_purchase',       'Future Home Purchase'),
+    ]
+    sched_c = "\n\n".join(
+        f"  {label}:\n"
+        f"    {na}: {ga.get(key,'—')}\n"
+        f"    {nb}: {gb.get(key,'—')}\n"
+        f"    Status: {pref_status(key)}"
+        for key, label in pref_keys)
+
+    # ── Pre-computed conditionals (avoids quote nesting in f-string) ──────
+    cross_disclosure = (
+        "This disclosure is further complicated by cross-border holdings. "
+        "The Parties should obtain internationally competent counsel." if case.get("cross_border")
+        else "All disclosed assets and debts are domestic.")
+    re_a_line = f"  {na}: Owns real property — deed and mortgage details to be attached before execution." if pa.get("owns_real_estate") else f"  {na}: No premarital real estate disclosed."
+    re_b_line = f"  {nb}: Owns real property — deed and mortgage details to be attached before execution." if pb.get("owns_real_estate") else f"  {nb}: No premarital real estate disclosed."
+    biz_a_line = "Owns business or equity interest — formal disclosure and valuation to be completed with independent counsel." if pa.get("owns_business") else "No business interests disclosed."
+    biz_b_line = "Owns business or equity interest — formal disclosure and valuation to be completed with independent counsel." if pb.get("owns_business") else "No business interests disclosed."
+    biz_disclosed = (
+        f"{na} and/or {nb} hold a business ownership or equity interest as disclosed in the Schedules."
+        if pa.get("owns_business") or pb.get("owns_business")
+        else "Neither Party has disclosed ownership of a business interest at the time of this draft.")
+    family_support_line = (
+        "One or both Parties have disclosed ongoing financial obligations to family members. "
+        "Such obligations shall remain the separate responsibility of the Party who undertakes them unless otherwise agreed."
+        if pa.get("supports_family") or pb.get("supports_family")
+        else "Neither Party has disclosed ongoing family financial support obligations at the time of this draft.")
+    children_line = (
+        "One or both Parties have children from a prior relationship. "
+        "Existing legal obligations to those children are not modified by this Agreement."
+        if pa.get("has_children_prior") or pb.get("has_children_prior")
+        else "Neither Party has disclosed children from a prior relationship at the time of this draft.")
+    cross_border_jur_note = (
+        f" This Agreement may implicate the laws of multiple jurisdictions given the Parties' "
+        f"disclosed cross-border assets or residency ({jur}). International counsel is strongly recommended."
+        if case.get("cross_border") else "")
+    imm_note = (
+        f"{na} — {pa.get('immigration_status','')}; {nb} — {pb.get('immigration_status','')}. "
+        f"Immigration and residency statuses are noted. This Agreement does not modify obligations imposed by immigration law.")
+    missing_suffix  = "y" if len(missing_docs) == 1 else "ies"
+    next_step_rec   = (
+        f"Resolve {len(conflicts)} preference conflict(s) with counsel before execution."
+        if conflicts
+        else "Both Parties should review this draft with independent legal counsel before scheduling execution.")
+    pa_fam_a = "Has disclosed ongoing financial support obligations to family members." if pa.get("supports_family") else "No ongoing family financial support obligations disclosed."
+    pb_fam_b = "Has disclosed ongoing financial support obligations to family members." if pb.get("supports_family") else "No ongoing family financial support obligations disclosed."
+    pa_kids  = "Has children from a prior relationship. Existing legal obligations are not modified by this Agreement." if pa.get("has_children_prior") else "None disclosed."
+    pb_kids  = "Has children from a prior relationship. Existing legal obligations are not modified by this Agreement." if pb.get("has_children_prior") else "None disclosed."
+
+    # ─────────────────────────────────────────────────────────────────────
+    # DOCUMENT
+    # ─────────────────────────────────────────────────────────────────────
+    draft = f"""PREMARITAL AGREEMENT — PREPARATION DRAFT
+
+IMPORTANT NOTICE: This document is a template-generated draft based on questionnaire responses. It is intended for preparation and attorney review only. It should not be signed, relied upon, or treated as final until each Party has had adequate opportunity to review, disclose financial information, ask questions, and consult independent legal counsel.
+
+
+PREMARITAL AGREEMENT
+
+This Premarital Agreement ("Agreement") is made and entered into on this ___ day of ________, 20__, by and between:
+
+{na}, a {pa.get('citizenship','')} national, residency status: {pa.get('immigration_status','')}, currently residing in {case.get('current_residence','')}, referred to in this Agreement as "Partner A,"
+
+and
+
+{nb}, a {pb.get('citizenship','')} national, residency status: {pb.get('immigration_status','')}, currently residing in {case.get('current_residence','')}, referred to in this Agreement as "Partner B."
+
+Partner A and Partner B may be referred to individually as a "Party" and collectively as the "Parties."
+
+
+1. RECITALS
+
+1.1  Intent to Marry. The Parties intend to marry on or about {wdate} in {loc}.
+
+1.2  Purpose. The Parties desire to define their respective rights and obligations regarding property, income, debts, business interests, inheritance, gifts, spousal support, and other financial matters before marriage. This Agreement reflects a theme of: "{theme}." {na} reports an approximate annual income of {money(pa.get('income',0))} and {nb} reports an approximate annual income of {money(pb.get('income',0))}.
+
+1.3  Effective Date. This Agreement shall become effective only upon the legal marriage of the Parties.
+
+1.4  Voluntary Agreement. Each Party enters into this Agreement voluntarily, freely, and without fraud, duress, coercion, or undue influence.
+
+1.5  Opportunity for Legal Counsel.
+     [ ] The Party has obtained independent legal counsel.
+     [ ] The Party has had adequate opportunity to obtain counsel and voluntarily chooses to proceed.
+     [ ] The Party requires attorney review before execution.
+
+1.6  Financial Disclosure. Each Party acknowledges that they have provided a fair and reasonable disclosure of their assets, debts, income, and financial obligations. Disclosures are attached as Schedule A ({na}) and Schedule B ({nb}).
+
+1.7  Adequate Time for Review. Each Party acknowledges receipt of this Agreement with sufficient time before the wedding date to review, ask questions, and consult counsel.
+
+1.8  No Reliance on Oral Promises. Neither Party is relying on oral promises or representations not included in this Agreement.
+
+
+2. DEFINITIONS
+
+2.1  Separate Property: Property belonging solely to one Party, not subject to division upon separation, divorce, annulment, or death, except as otherwise provided herein.
+
+2.2  Marital Property: Property the Parties agree will be jointly owned, shared, or subject to division upon separation, divorce, annulment, or death.
+
+2.3  Premarital Property: Property owned by either Party before the marriage.
+
+2.4  Income: Wages, salary, bonuses, commissions, dividends, distributions, business income, rental income, interest, capital gains, royalties, and other earnings.
+
+2.5  Appreciation: Any increase in value of property, whether caused by market forces, reinvestment, labour, active management, business growth, or improvements.
+
+2.6  Debt: Any financial obligation, including credit card debt, student loans, personal loans, mortgages, tax liabilities, and other obligations.
+
+2.7  Business Interest: Any ownership, equity, membership, partnership, stock, options, restricted stock units, profit-sharing rights, or other economic interest in a business or professional entity.
+
+2.8  Cross-Border Asset: Any asset, debt, business interest, real estate, inheritance interest, or financial account located outside the primary jurisdiction where the Parties reside.
+
+
+3. DISCLOSURE OF ASSETS, DEBTS, AND INCOME
+
+3.1  {na}'s assets, debts, income, business interests, and financial obligations are disclosed in Schedule A.
+
+3.2  {nb}'s assets, debts, income, business interests, and financial obligations are disclosed in Schedule B.
+
+3.3  Each Party represents that their disclosure is true, accurate, and complete to the best of their knowledge. {cross_disclosure}
+
+3.4  No Hidden Assets: Each Party represents that they have not intentionally concealed any material asset, debt, income source, business interest, or financial obligation.
+
+3.5  If either Party discovers a material omission before signing, that Party shall update their disclosure before execution.
+
+
+4. SEPARATE PROPERTY — PREMARITAL ASSETS
+
+4.1  Premarital Asset Treatment.
+     {sep_prop_clause()}
+
+4.2  All assets listed as Separate Property in Schedule A shall remain {na}'s Separate Property. All assets listed as Separate Property in Schedule B shall remain {nb}'s Separate Property.
+
+{na}'s Disclosed Premarital Assets:
+{fmt_assets(st.session_state.assets_a, na)}
+
+{nb}'s Disclosed Premarital Assets:
+{fmt_assets(st.session_state.assets_b, nb)}
+
+4.3  If Separate Property is sold, exchanged, or converted into another asset, the resulting asset shall remain Separate Property, provided it can be traced.
+
+4.4  Commingling: The Parties agree to use reasonable efforts to keep Separate Property separate. Deposit into joint accounts may create tracing issues and should be addressed in writing.
+
+4.5  Tracing: A Party claiming that an asset remains Separate Property shall maintain records sufficient to trace the asset to its separate source.
+
+
+5. MARITAL PROPERTY
+
+5.1  Marital Property shall include property the Parties intentionally acquire jointly during the marriage or expressly designate as shared in writing.
+
+5.2  Funds deposited into jointly titled bank or investment accounts shall be presumed to be Marital Property unless records clearly show otherwise.
+
+5.3  The Parties may modify the classification of property during the marriage by written agreement signed by both Parties.
+
+
+6. INCOME DURING MARRIAGE
+
+6.1  Treatment of Earned Income.
+     {income_clause()}
+
+6.2  Bonuses, stock options, RSUs, and equity compensation shall be classified based on when they were earned, granted, or vested, subject to attorney review.
+
+6.3  Tax refunds and liabilities shall be allocated based on source of income, filing status, and the Parties' agreement, subject to applicable law.
+
+
+7. DEBTS AND LIABILITIES
+
+7.1  Premarital debts incurred by a Party before the marriage shall remain that Party's separate responsibility, consistent with the preferences stated below.
+
+{na}'s Disclosed Premarital Debts:
+{fmt_debts(st.session_state.debts_a, na)}
+     {na}'s debt responsibility preference: {_p(ga,'debt_responsibility')}.
+
+{nb}'s Disclosed Premarital Debts:
+{fmt_debts(st.session_state.debts_b, nb)}
+     {nb}'s debt responsibility preference: {_p(gb,'debt_responsibility')}.
+
+7.2  Neither Party shall incur debt in the other Party's name without express written consent.
+
+7.3  Any joint debt incurred after the date of marriage shall be subject to shared responsibility unless the Parties agree otherwise in writing.
+
+
+8. REAL ESTATE
+
+8.1  Real estate owned by a Party before marriage shall remain that Party's Separate Property unless transferred into joint title or otherwise agreed in writing.
+{re_a_line}
+{re_b_line}
+
+8.2  Mortgage payments from marital funds toward one Party's Separate Property may create reimbursement rights; the Parties should specify in writing whether such payments establish a marital interest or remain non-reimbursable.
+
+8.3  Future Home Purchase.
+     {home_clause()}
+
+8.4  Certain jurisdictions may have special rules governing a marital residence that may limit or override provisions of this Agreement.
+
+8.5  Any real estate located outside {jur} shall be disclosed separately and reviewed by counsel familiar with the law of that location.
+
+
+9. BUSINESS INTERESTS
+
+9.1  Business Interests Disclosed.
+     {biz_disclosed}
+     {na}: {biz_a_line}
+     {nb}: {biz_b_line}
+
+9.2  Business Interest Appreciation.
+     {biz_clause()}
+
+9.3  No Management Rights. This Agreement does not grant either Party management rights, voting rights, or employment rights in the other Party's business unless otherwise agreed in writing.
+
+9.4  Future Business Interests. Business interests created during marriage shall be classified based on source of funds, labour contribution, ownership documents, and the Parties' written agreement.
+
+9.5  If a business must be valued, the Parties may use a neutral valuation professional or another method agreed in writing.
+
+
+10. RETIREMENT ACCOUNTS AND INVESTMENTS
+
+10.1  Premarital Retirement Accounts: Retirement accounts owned before marriage shall remain the Separate Property of the owning Party, including premarital balances and traceable premarital growth.
+
+10.2  Contributions During Marriage: Retirement contributions and their classification shall be addressed with independent counsel, as treatment varies significantly by jurisdiction.
+
+10.3  Investment Accounts: Shall be classified based on title, source of funds, and tracing records.
+
+10.4  Stock Options and RSUs: Shall be reviewed based on grant date, vesting date, purpose of award, and applicable law.
+
+
+11. INHERITANCE, GIFTS, TRUSTS, AND FAMILY PROPERTY
+
+11.1  Inheritance and Gifts.
+      {inheritance_clause()}
+
+11.2  Family land, ancestral property, family businesses, expected inheritance, or beneficial interests in family trusts shall remain Separate Property unless expressly transferred or shared in writing.
+
+11.3  Trust Interests: Any trust interest, whether vested, contingent, or discretionary, shall remain the Separate Property of the beneficiary Party unless applicable law provides otherwise.
+
+11.4  If a Party uses inheritance or family gifts toward a joint home, joint account, or shared investment, the Parties should document whether the contribution is a gift, loan, or reimbursement right.
+
+11.5  Family Support Obligations.
+      {family_support_line}
+
+
+12. SPOUSAL SUPPORT
+
+12.1  {spousal_clause()}
+
+12.2  Career Pause or Caregiving: If one Party pauses or reduces employment to care for children, support the household, or relocate for the other Party's career, the Parties should review whether the spousal support provision remains fair and enforceable.
+
+12.3  No provision of this Agreement shall be interpreted to require enforcement of a spousal support waiver if doing so would violate applicable law or public policy.
+
+
+13. CHILDREN
+
+13.1  Child Support Not Waived: This Agreement does not waive, limit, or predetermine child support. Child support shall be determined according to applicable law and the best interests of the child.
+
+13.2  Child Custody: This Agreement does not make binding decisions regarding custody, decision-making responsibility, or parenting time. Such matters shall be determined according to applicable law.
+
+13.3  {children_line}
+
+
+14. ESTATE RIGHTS AND DEATH
+
+14.1  Estate rights, including elective share and surviving spouse claims, shall be addressed with independent estate planning counsel before execution.
+
+14.2  Beneficiary Designations: This Agreement does not automatically change beneficiary designations for life insurance, retirement accounts, bank accounts, or transfer-on-death assets. Each Party is responsible for updating their own designations.
+
+14.3  The Parties may execute wills, trusts, powers of attorney, and healthcare directives consistent with this Agreement.
+
+
+15. TAXES
+
+15.1  The Parties may file tax returns jointly or separately as permitted by law and as they mutually determine each tax year.
+
+15.2  Each Party shall be responsible for tax liabilities arising from their separate income or premarital tax obligations unless otherwise agreed.
+
+15.3  Indemnification: A Party whose separate income, property, or business creates tax liability shall indemnify the other Party to the extent permitted by law.
+
+
+16. CROSS-BORDER, IMMIGRATION, AND MULTI-JURISDICTION ISSUES
+
+16.1  Jurisdictions Identified: {jur}.
+
+16.2  Cross-Border Assets: Assets located outside the primary jurisdiction may require review by counsel familiar with the laws of that jurisdiction.{cross_border_jur_note}
+
+16.3  Immigration and Residency: {imm_note}
+
+16.4  Future Relocation: If the Parties relocate to another state, province, or country, they should review this Agreement with counsel to determine whether amendment is appropriate.
+
+
+17. HOUSEHOLD EXPENSES AND JOINT FINANCES
+
+17.1  Each Party may maintain separate bank, investment, and credit accounts. Nothing in this Agreement requires either Party to merge finances, retitle property, or assume the other Party's debts.
+
+17.2  The Parties may agree to contribute to shared household expenses equally, proportionally by income, or by separate arrangement. Joint account contributions shall be used for joint purposes unless otherwise agreed.
+
+
+18. DISPUTE RESOLUTION
+
+18.1  If a dispute arises, the Parties shall first attempt to resolve it through good-faith discussion.
+
+18.2  Before filing litigation, the Parties may attempt mediation with a qualified family-law mediator, unless emergency relief is needed.
+
+18.3  Any unresolved dispute shall be handled in a court with proper jurisdiction in {loc}.
+
+18.4  Nothing in this Agreement prevents either Party from seeking emergency legal relief where necessary.
+
+
+19. REPRESENTATIONS AND WARRANTIES
+
+Each Party represents and warrants that:
+  • They have read this Agreement fully and understand its nature and effect.
+  • They have had the opportunity to ask questions and consult independent legal counsel.
+  • They are signing voluntarily, without duress, coercion, or undue influence.
+  • They have provided financial disclosure to the best of their knowledge.
+  • They are not relying on promises outside this Agreement.
+  • They understand that certain provisions may be limited by applicable law or public policy.
+
+
+20. AMENDMENT, REVOCATION, AND REVIEW
+
+20.1  Amendment: This Agreement may be amended only by a written document signed by both Parties.
+
+20.2  Revocation: This Agreement may be revoked only by a written document signed by both Parties.
+
+20.3  Periodic Review: The Parties may review this Agreement after major life events, including birth of a child, relocation, business sale, inheritance, major asset purchase, or significant income change.
+
+
+21. SEVERABILITY
+
+If any provision of this Agreement is found invalid or unenforceable, the remaining provisions shall remain in effect to the fullest extent permitted by law.
+
+
+22. GOVERNING LAW
+
+22.1  This Agreement shall be governed by the laws of {jur}, unless a court determines that another law applies.
+
+22.2  This governing-law provision may not control the treatment of real estate, family law rights, estate rights, or support obligations in another jurisdiction.
+
+
+23. ENTIRE AGREEMENT
+
+This Agreement, including all Schedules, constitutes the entire agreement between the Parties regarding the matters addressed herein. It supersedes all prior oral or written discussions and understandings.
+
+
+24. INDEPENDENT COUNSEL ACKNOWLEDGMENT AND EXECUTION
+
+Both Parties acknowledge this preparation draft has been generated by KnotWise for the purpose of organising financial disclosures and identifying key discussion points prior to attorney engagement. Each Party is strongly advised to retain independent legal counsel before executing any final agreement. This document does not constitute legal advice. KnotWise is not a law firm.
+
+This Agreement may be signed in counterparts, each of which shall be considered an original. Electronic signatures may be accepted if permitted by applicable law. The Parties may sign before a notary public and/or witnesses as required by applicable law.
+
+
+SIGNATURES
+
+IN WITNESS WHEREOF, the Parties have executed this Premarital Agreement on the dates set forth below.
+
+Partner A:
+Signature:     _______________________________
+Printed Name:  {na}
+Date:          ___________________
+
+Partner B:
+Signature:     _______________________________
+Printed Name:  {nb}
+Date:          ___________________
+
+
+NOTARY ACKNOWLEDGMENT
+
+State/Province of ____________________
+County/Region of ____________________
+
+On this ___ day of ________, 20__, before me personally appeared {na} and {nb}, known to me or proven through satisfactory evidence to be the persons subscribed to this Agreement, and acknowledged that they executed the same voluntarily.
+
+Notary Public: _______________________________
+My Commission Expires: ______________________
+
+
+CERTIFICATE OF INDEPENDENT LEGAL ADVICE — PARTNER A
+
+I, _______________________________, a licensed attorney, certify that I have reviewed this Agreement with {na}, explained its nature and effect, discussed rights and obligations affected, and answered questions presented by the client.
+
+Attorney Name: _______________________________
+Bar Number: _______________________________
+Signature: _______________________________
+Date: ___________________
+
+
+CERTIFICATE OF INDEPENDENT LEGAL ADVICE — PARTNER B
+
+I, _______________________________, a licensed attorney, certify that I have reviewed this Agreement with {nb}, explained its nature and effect, discussed rights and obligations affected, and answered questions presented by the client.
+
+Attorney Name: _______________________________
+Bar Number: _______________________________
+Signature: _______________________________
+Date: ___________________
+
+
+SCHEDULE A — PARTNER A FINANCIAL DISCLOSURE
+
+A.1  Personal Information
+     Full Name:                 {na}
+     Citizenship:               {pa.get('citizenship','')}
+     Immigration/Residency:     {pa.get('immigration_status','')}
+     Current Residence:         {case.get('current_residence','')}
+     Approximate Annual Income: {money(pa.get('income',0))}
+
+A.2  Disclosed Assets
+{fmt_assets(st.session_state.assets_a, na)}
+
+A.3  Disclosed Debts
+{fmt_debts(st.session_state.debts_a, na)}
+
+A.4  Business Interests
+     {biz_a_line}
+
+A.5  Real Estate
+     {'Owns real property — deed and mortgage details to be attached before execution.' if pa.get('owns_real_estate') else 'No premarital real estate disclosed.'}
+
+A.6  Family Financial Obligations
+     {pa_fam_a}
+
+A.7  Prior Relationship Children
+     {pa_kids}
+
+
+SCHEDULE B — PARTNER B FINANCIAL DISCLOSURE
+
+B.1  Personal Information
+     Full Name:                 {nb}
+     Citizenship:               {pb.get('citizenship','')}
+     Immigration/Residency:     {pb.get('immigration_status','')}
+     Current Residence:         {case.get('current_residence','')}
+     Approximate Annual Income: {money(pb.get('income',0))}
+
+B.2  Disclosed Assets
+{fmt_assets(st.session_state.assets_b, nb)}
+
+B.3  Disclosed Debts
+{fmt_debts(st.session_state.debts_b, nb)}
+
+B.4  Business Interests
+     {biz_b_line}
+
+B.5  Real Estate
+     {'Owns real property — deed and mortgage details to be attached before execution.' if pb.get('owns_real_estate') else 'No premarital real estate disclosed.'}
+
+B.6  Family Financial Obligations
+     {pb_fam_b}
+
+B.7  Prior Relationship Children
+     {pb_kids}
+
+
+SCHEDULE C — SELECTED PRENUP PREFERENCES
+
+{sched_c}
+
+
+SCHEDULE D — ATTORNEY REVIEW FLAGS
+
+The following items require attorney attention before execution:
+
+{flags_text}
+
+
+SCHEDULE E — DOCUMENT CHECKLIST
+
+  {chk('Government ID')} Government identification — {na}
+  {chk('Government ID')} Government identification — {nb}
+  {chk('Bank/Investment Statements')} Recent bank and investment account statements
+  {chk('Retirement Account Statements')} Retirement account statements
+  {chk('Debt Statements')} Credit card, loan, and debt statements
+  {chk('Real Estate Documents')} Real estate deeds or title records
+  {chk('Business Ownership Documents')} Business formation and valuation documents
+  [ ] Tax returns (last 2 years)
+  [ ] Pay stubs or income verification
+  [ ] Trust documents (if applicable)
+  [ ] Inheritance documentation (if applicable)
+  {cross_border_doc_line}
+
+
+SCHEDULE F — READINESS SUMMARY
+
+  Readiness Score:       {score}/100
+  Risk Level:            {risk} — {risk_label}
+  Detected Conflicts:    {len(conflicts)} preference conflict(s) identified
+  Missing Documents:     {len(missing_docs)} document categor{missing_suffix} not yet uploaded
+  Agreement Theme:       {theme}
+  Draft Generated:       {now_str}
+  Recommended Next Step: {next_step_rec}
+
+  IMPORTANT DISCLAIMER: This document is a preparation draft generated by KnotWise, an academic demonstration prototype. It is not legal advice and does not constitute a valid prenuptial agreement. Both Parties must retain independent legal counsel before executing any final agreement. KnotWise is not a law firm and does not provide legal services."""
+
+    return draft
+
+
+# ── AI: Gemini call (cached) — falls back to local draft ─────────────────
 def call_gemini():
     if st.session_state.ai_draft:
         return st.session_state.ai_draft, None
     try:
         import google.generativeai as genai
         key = st.secrets.get("knotwise_gemini_key", "")
-        if not key:
-            return None, "API key not configured. Add `knotwise_gemini_key` to Streamlit secrets."
-        genai.configure(api_key=key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        response = model.generate_content(build_prenup_prompt())
-        st.session_state.ai_draft = response.text
-        return response.text, None
-    except Exception as e:
-        return None, str(e)
+        if key:
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel("gemini-2.0-flash")
+            response = model.generate_content(build_prenup_prompt())
+            st.session_state.ai_draft = response.text
+            save_state()
+            return response.text, None
+    except Exception:
+        pass
+    # Fallback: fill template locally — no API quota consumed
+    draft = generate_draft_locally()
+    st.session_state.ai_draft = draft
+    save_state()
+    return draft, None
 
 
 # ── PDF builder ───────────────────────────────────────────────────────────
@@ -813,6 +1527,7 @@ def partner_form(label, state_key, next_page=None):
         st.session_state[state_key] = {"name":name,"email":email,"citizenship":citizenship,"immigration_status":immigration_status,"income":income,"owns_business":owns_business,"owns_real_estate":owns_real_estate,"has_children_prior":has_children_prior,"supports_family":supports_family,"notes":notes}
         goal_key = "goals_a" if state_key == "partner_a" else "goals_b"
         st.session_state[goal_key] = {"premarital_assets":premarital_assets,"future_income":future_income,"business_growth":business_growth,"debt_responsibility":debt_responsibility,"spousal_support":spousal_support,"inheritance":inheritance,"home_purchase":home_purchase}
+        save_state()
         if save_next and next_page:
             go(next_page)
         else:
@@ -881,6 +1596,7 @@ elif page == "setup":
             st.session_state.case = {"case_name":case_name,"wedding_date":str(wedding_date),"current_residence":current_residence,"future_residence":future_residence,"jurisdictions":jurisdictions,"cross_border":cross_border}
             st.session_state.case_created = True
             st.session_state.ai_draft = None
+            save_state()
             if save_next:
                 go("partner")
             else:
@@ -919,6 +1635,7 @@ elif page == "partner":
             st.session_state.partner_invited = True
             st.session_state.invite_email = invite_email
             if partner_name: st.session_state.partner_b["name"] = partner_name
+            save_state()
             if sent_next:
                 go("qa")
             else:
@@ -979,7 +1696,7 @@ elif page == "assets":
         if sub:
             a = {"asset_type":asset_type,"description":description,"location":location,"value":value,"preference":preference}
             (st.session_state.assets_a if owner=="Partner A" else st.session_state.assets_b).append(a)
-            st.session_state.ai_draft = None; st.success("Asset added.")
+            st.session_state.ai_draft = None; save_state(); st.success("Asset added.")
         df = build_asset_df()
         if not df.empty:
             st.dataframe(df, use_container_width=True)
@@ -1000,7 +1717,7 @@ elif page == "assets":
         if sub:
             d = {"debt_type":debt_type,"description":description,"balance":balance,"preference":preference}
             (st.session_state.debts_a if owner=="Partner A" else st.session_state.debts_b).append(d)
-            st.session_state.ai_draft = None; st.success("Debt added.")
+            st.session_state.ai_draft = None; save_state(); st.success("Debt added.")
         df = build_debt_df()
         if not df.empty:
             st.dataframe(df, use_container_width=True)
@@ -1019,6 +1736,7 @@ elif page == "assets":
         if sub:
             if uploaded_file:
                 st.session_state.uploaded_docs.append({"type":doc_type,"filename":uploaded_file.name,"size":uploaded_file.size})
+                save_state()
                 st.success("Document metadata saved.")
             else:
                 st.error("Please upload a file first.")
@@ -1089,7 +1807,7 @@ elif page == "draft":
         st.title("AI Draft Generation")
         gold_rule()
         theme = detect_theme()
-        st.markdown(f"Gemini AI will fill the prenup template using all captured questionnaire data. The AI runs **once** and the result is cached — it will not re-run unless you explicitly regenerate.")
+        st.markdown("All captured questionnaire data is merged into a structured prenup template. The draft is generated **once** and cached — it will not re-run unless you explicitly regenerate.")
         st.markdown(f'<p style="font-size:0.72rem;color:#8A9E58;margin-top:0.8rem">Detected theme: <strong>{theme}</strong></p>', unsafe_allow_html=True)
 
     st.markdown("---")
@@ -1101,17 +1819,17 @@ elif page == "draft":
         if not st.session_state.partner_b: missing_steps.append("Partner B Questionnaire")
         if not st.session_state.goals_a or not st.session_state.goals_b: missing_steps.append("Prenup Preferences (both partners)")
         st.markdown('<div class="kw-lock-box">', unsafe_allow_html=True)
-        st.markdown('<p style="color:#555;font-size:0.8rem;margin-bottom:0.6rem">Complete the following steps before generating the AI draft:</p>', unsafe_allow_html=True)
+        st.markdown('<p style="color:#555;font-size:0.8rem;margin-bottom:0.6rem">Complete the following steps before generating the draft:</p>', unsafe_allow_html=True)
         for s in missing_steps:
             st.markdown(f'<p style="color:#8A9E58;font-size:0.78rem;margin:0.2rem 0">— {s}</p>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         if not st.session_state.ai_draft:
             st.markdown('<div class="kw-ai-box">', unsafe_allow_html=True)
-            st.markdown('<p style="color:#999;font-size:0.82rem;margin-bottom:1rem">All required data is captured. Click below to generate your AI prenup draft. This will make <strong style="color:#8A9E58">one API call</strong> to Google Gemini and cache the result.</p>', unsafe_allow_html=True)
+            st.markdown('<p style="color:#999;font-size:0.82rem;margin-bottom:1rem">All required data is captured. Click below to generate the prenup preparation draft. The result is cached — no repeat processing on reload.</p>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
-            if st.button("Generate AI Draft", use_container_width=False):
-                with st.spinner("Gemini is drafting your prenup…"):
+            if st.button("Generate Draft", use_container_width=False):
+                with st.spinner("Building your prenup draft…"):
                     draft, err = call_gemini()
                 if err:
                     st.error(f"Generation failed: {err}")
@@ -1119,17 +1837,19 @@ elif page == "draft":
                     st.success("Draft generated and cached. Scroll down to review.")
                     st.rerun()
         else:
-            st.success("AI draft generated and cached. Edit or proceed to Sign Off.")
+            st.success("Draft generated and cached. Edit below or proceed to Sign Off.")
             col_dl, col_regen = st.columns([3, 1])
             with col_regen:
-                if st.button("↺ Regenerate", help="This will make another API call"):
+                if st.button("↺ Regenerate", help="Clear cache and rebuild the draft"):
                     st.session_state.ai_draft = None
+                    save_state()
                     st.rerun()
             st.markdown("---")
             edited = st.text_area("Review & Edit AI Draft", value=st.session_state.ai_draft, height=600)
             if edited != st.session_state.ai_draft:
                 if st.button("Save Edits"):
                     st.session_state.ai_draft = edited
+                    save_state()
                     st.success("Edits saved.")
 
 
@@ -1158,6 +1878,7 @@ elif page == "signoff":
             if sub_a:
                 if sa_agree:
                     st.session_state.signoff_a = {"name": sa_name, "agreed": True, "timestamp": datetime.now().strftime("%B %d, %Y at %I:%M %p")}
+                    save_state()
                     st.success(f"Partner A sign-off recorded — {st.session_state.signoff_a['timestamp']}")
                 else:
                     st.error("Please check the acknowledgment box to confirm.")
@@ -1173,6 +1894,7 @@ elif page == "signoff":
             if sub_b:
                 if sb_agree:
                     st.session_state.signoff_b = {"name": sb_name, "agreed": True, "timestamp": datetime.now().strftime("%B %d, %Y at %I:%M %p")}
+                    save_state()
                     st.success(f"Partner B sign-off recorded — {st.session_state.signoff_b['timestamp']}")
                 else:
                     st.error("Please check the acknowledgment box to confirm.")
