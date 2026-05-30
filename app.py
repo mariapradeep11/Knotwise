@@ -711,21 +711,29 @@ def generate_draft_locally():
     def fmt_assets(lst, owner_name):
         if not lst:
             return f"  No premarital assets disclosed by {owner_name}."
-        return "\n".join(
-            f"  • {a.get('asset_type','Asset')}: {a.get('description','')} "
-            f"| Location: {a.get('location','')} "
-            f"| Est. Value: {money(a.get('value',0))} "
-            f"| Preference: {a.get('preference','Separate property')}"
-            for a in lst)
+        lines = []
+        for a in lst:
+            desc = a.get('description','').strip() or '[description not provided]'
+            val  = money(a.get('value', 0))
+            lines.append(
+                f"  • {a.get('asset_type','Asset')}: {desc} "
+                f"| Location: {a.get('location','') or '[not specified]'} "
+                f"| Est. Value: {val} "
+                f"| Preference: {a.get('preference','Separate property')}")
+        return "\n".join(lines)
 
     def fmt_debts(lst, owner_name):
         if not lst:
             return f"  No premarital debts disclosed by {owner_name}."
-        return "\n".join(
-            f"  • {d.get('debt_type','Debt')}: {d.get('description','')} "
-            f"| Balance: {money(d.get('balance',0))} "
-            f"| Responsibility: {d.get('preference','Owner remains responsible')}"
-            for d in lst)
+        lines = []
+        for d in lst:
+            desc = d.get('description','').strip() or '[description not provided]'
+            bal  = money(d.get('balance', 0))
+            lines.append(
+                f"  • {d.get('debt_type','Debt')}: {desc} "
+                f"| Balance: {bal} "
+                f"| Responsibility: {d.get('preference','Owner remains responsible')}")
+        return "\n".join(lines)
 
     # ── Preference status (Schedule C) ────────────────────────────────────
     def pref_status(key):
@@ -1297,24 +1305,34 @@ def call_gemini():
 def build_pdf_bytes():
     from fpdf import FPDF
 
+    LM = 15   # left margin mm
+    RM = 15   # right margin mm
+    TM = 15   # top margin mm
+    CW = 180  # content width = 210 - LM - RM
+
     class KWDoc(FPDF):
         def header(self):
             self.set_font("Helvetica", "B", 7.5)
             self.set_text_color(138, 158, 88)
-            self.cell(0, 7, "KNOTWISE  |  PRENUPTIAL AGREEMENT PREPARATION DRAFT", align="C")
-            self.ln(1)
+            self.set_x(LM)
+            self.cell(CW, 7, "KNOTWISE  |  PRENUPTIAL AGREEMENT PREPARATION DRAFT", align="C",
+                      new_x="LMARGIN", new_y="NEXT")
             self.set_draw_color(138, 158, 88)
             self.set_line_width(0.2)
-            self.line(15, self.get_y(), 195, self.get_y())
-            self.ln(5)
+            self.line(LM, self.get_y(), LM + CW, self.get_y())
+            self.ln(4)
 
         def footer(self):
             self.set_y(-13)
             self.set_font("Helvetica", "I", 6.5)
             self.set_text_color(160, 160, 160)
-            self.cell(0, 5, f"PREPARATION DRAFT — FOR ATTORNEY REVIEW ONLY  |  Page {self.page_no()}  |  KnotWise Academic Prototype", align="C")
+            self.set_x(LM)
+            self.cell(CW, 5,
+                f"PREPARATION DRAFT — FOR ATTORNEY REVIEW ONLY  |  Page {self.page_no()}  |  KnotWise Academic Prototype",
+                align="C")
 
     pdf = KWDoc(orientation="P", unit="mm", format="A4")
+    pdf.set_margins(left=LM, top=TM, right=RM)
     pdf.set_auto_page_break(auto=True, margin=20)
     pdf.add_page()
 
@@ -1323,118 +1341,160 @@ def build_pdf_bytes():
     sa, sb = st.session_state.signoff_a, st.session_state.signoff_b
     draft  = st.session_state.ai_draft or ""
     theme  = detect_theme()
+    HW    = CW // 2  # half-width column = 90mm
 
-    # Title block
-    pdf.set_font("Helvetica", "B", 17)
+    def mc(txt, h=5.5, bold=False, size=9.5, color=(25,25,25)):
+        """Safe multi_cell that always starts at left margin."""
+        pdf.set_x(LM)
+        pdf.set_font("Helvetica", "B" if bold else "", size)
+        pdf.set_text_color(*color)
+        pdf.multi_cell(CW, h, pdf_safe(str(txt)))
+
+    # ── Title block ───────────────────────────────────────────────────────
+    pdf.set_x(LM)
+    pdf.set_font("Helvetica", "B", 16)
     pdf.set_text_color(20, 20, 20)
-    pdf.cell(0, 12, "PRENUPTIAL AGREEMENT", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(CW, 11, "PREMARITAL AGREEMENT", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_x(LM)
     pdf.set_font("Helvetica", "", 8.5)
     pdf.set_text_color(120, 120, 120)
-    pdf.cell(0, 5, "Preparation Draft for Attorney Review  |  Not a Final Legal Document", align="C", new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(6)
+    pdf.cell(CW, 5, "Preparation Draft for Attorney Review  |  Not a Final Legal Document",
+             align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
 
-    # Info box
+    # ── Info box (two-column rows, explicit half-widths) ──────────────────
     pdf.set_fill_color(250, 250, 248)
     pdf.set_draw_color(180, 195, 150)
     pdf.set_line_width(0.3)
     box_y = pdf.get_y()
-    pdf.rect(15, box_y, 180, 26, style="FD")
-    pdf.set_xy(20, box_y + 4)
-    pdf.set_font("Helvetica", "", 8)
-    pdf.set_text_color(70, 70, 70)
-    pdf.cell(88, 5, pdf_safe(f"Couple: {case.get('case_name','')}"), new_x="RIGHT", new_y="TOP")
-    pdf.cell(88, 5, pdf_safe(f"Wedding Date: {case.get('wedding_date','')}"))
-    pdf.set_x(20); pdf.ln(6)
-    pdf.cell(88, 5, pdf_safe(f"Residence: {case.get('future_residence','')}"), new_x="RIGHT", new_y="TOP")
-    pdf.cell(88, 5, pdf_safe(f"Jurisdiction: {case.get('jurisdictions','')}"))
-    pdf.set_x(20); pdf.ln(6)
+    pdf.rect(LM, box_y, CW, 28, style="FD")
+
+    def box_row(label_a, val_a, label_b, val_b, row_y):
+        pdf.set_font("Helvetica", "", 8)
+        pdf.set_text_color(70, 70, 70)
+        pdf.set_xy(LM + 3, row_y)
+        pdf.cell(HW - 3, 5, pdf_safe(f"{label_a}: {val_a}"), border=0)
+        pdf.set_xy(LM + HW + 3, row_y)
+        pdf.cell(HW - 3, 5, pdf_safe(f"{label_b}: {val_b}"), border=0)
+
+    box_row("Couple",    case.get("case_name",""),
+            "Wedding",   case.get("wedding_date",""),    row_y=box_y + 4)
+    box_row("Residence", case.get("future_residence",""),
+            "Jurisdiction", case.get("jurisdictions",""), row_y=box_y + 11)
+
+    pdf.set_xy(LM + 3, box_y + 18)
     pdf.set_font("Helvetica", "I", 7.5)
     pdf.set_text_color(120, 145, 70)
-    pdf.cell(0, 5, pdf_safe(f"Agreement Theme: {theme}"))
-    pdf.ln(10)
+    pdf.cell(CW - 6, 5, pdf_safe(f"Agreement Theme: {theme}"), border=0)
 
-    # AI Draft content
-    pdf.set_font("Helvetica", "", 9.5)
-    pdf.set_text_color(25, 25, 25)
-
-    for line in draft.split('\n'):
-        line = pdf_safe(line.strip())
-        if not line:
-            pdf.ln(2.5)
-            continue
-        # Section headers: starts with digit and dot, or all caps short line
-        is_header = (len(line) > 2 and line[0].isdigit() and '. ' in line[:5]) or (line.isupper() and len(line) < 80)
-        if is_header:
-            pdf.ln(2)
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.set_text_color(120, 145, 70)
-            pdf.multi_cell(0, 6, line)
-            pdf.set_font("Helvetica", "", 9.5)
-            pdf.set_text_color(25, 25, 25)
-            pdf.ln(1)
-        else:
-            pdf.multi_cell(0, 5.5, line)
-
-    # Sign-off page
-    pdf.add_page()
-    pdf.set_font("Helvetica", "B", 12)
-    pdf.set_text_color(20, 20, 20)
-    pdf.cell(0, 10, "ACKNOWLEDGMENT & SIGN-OFF", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_draw_color(138, 158, 88)
-    pdf.set_line_width(0.4)
-    pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+    # Reset cursor below the box
+    pdf.set_xy(LM, box_y + 28)
     pdf.ln(6)
 
+    # ── Draft content ─────────────────────────────────────────────────────
+    for raw_line in draft.split('\n'):
+        line = pdf_safe(raw_line.strip())
+        if not line:
+            pdf.set_x(LM)
+            pdf.ln(2.5)
+            continue
+
+        # Detect section headers:
+        # "1. RECITALS", "22. GOVERNING LAW" — digit(s), ". ", rest
+        # or ALL-CAPS short lines like "SIGNATURES", "SCHEDULE A —..."
+        starts_numbered = (len(line) > 3 and line[0].isdigit()
+                           and '. ' in line[:line.find(' ')+2 if ' ' in line else 4])
+        is_all_caps    = (line.isupper() and 4 < len(line) < 90)
+        is_schedule    = line.startswith("SCHEDULE ")
+
+        if starts_numbered or is_all_caps or is_schedule:
+            pdf.ln(2)
+            pdf.set_x(LM)
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.set_text_color(120, 145, 70)
+            pdf.multi_cell(CW, 6, line)
+            pdf.set_font("Helvetica", "", 9.5)
+            pdf.set_text_color(25, 25, 25)
+            pdf.set_x(LM)
+            pdf.ln(1)
+        else:
+            pdf.set_x(LM)
+            pdf.set_font("Helvetica", "", 9.5)
+            pdf.set_text_color(25, 25, 25)
+            pdf.multi_cell(CW, 5.5, line)
+
+    # ── Sign-off page ─────────────────────────────────────────────────────
+    pdf.add_page()
+    pdf.set_x(LM)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.set_text_color(20, 20, 20)
+    pdf.cell(CW, 10, "ACKNOWLEDGMENT & SIGN-OFF", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_draw_color(138, 158, 88)
+    pdf.set_line_width(0.4)
+    pdf.line(LM, pdf.get_y(), LM + CW, pdf.get_y())
+    pdf.ln(6)
+
+    pdf.set_x(LM)
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(80, 80, 80)
-    pdf.multi_cell(0, 5.5, pdf_safe(
-        "Both parties confirm they have reviewed this preparation draft, understand it is not a final legal agreement, "
-        "and acknowledge it requires independent attorney review before execution."))
+    pdf.multi_cell(CW, 5.5, pdf_safe(
+        "Both parties confirm they have reviewed this preparation draft, understand it is not a "
+        "final legal agreement, and acknowledge it requires independent attorney review before execution."))
     pdf.ln(8)
 
-    # Two signature columns
+    # Two signature columns (fixed absolute positions, cell width = 80)
+    COL_W = 80
     y = pdf.get_y()
-    for x_off, partner_label, partner_data, signoff_data in [
-        (15, "PARTNER A", pa, sa), (110, "PARTNER B", pb, sb)
+    for x_off, plabel, pdata, sdata in [
+        (LM,          "PARTNER A", pa, sa),
+        (LM + COL_W + 10, "PARTNER B", pb, sb),
     ]:
         pdf.set_xy(x_off, y)
         pdf.set_font("Helvetica", "B", 8.5)
         pdf.set_text_color(120, 145, 70)
-        pdf.cell(80, 6, partner_label)
+        pdf.cell(COL_W, 6, plabel, border=0)
+
         pdf.set_xy(x_off, y + 8)
         pdf.set_font("Helvetica", "", 8.5)
         pdf.set_text_color(30, 30, 30)
-        pdf.cell(80, 5.5, pdf_safe(f"Name: {signoff_data.get('name', partner_data.get('name',''))}"))
+        pdf.cell(COL_W, 5.5, pdf_safe(f"Name: {sdata.get('name', pdata.get('name',''))}"), border=0)
+
         pdf.set_xy(x_off, y + 14)
-        pdf.cell(80, 5.5, pdf_safe(f"Acknowledged: {'Yes' if signoff_data.get('agreed') else 'Pending'}"))
+        pdf.cell(COL_W, 5.5,
+                 pdf_safe(f"Acknowledged: {'Yes' if sdata.get('agreed') else 'Pending'}"), border=0)
+
         pdf.set_xy(x_off, y + 20)
         pdf.set_font("Helvetica", "I", 8)
         pdf.set_text_color(120, 120, 120)
-        pdf.cell(80, 5.5, pdf_safe(f"Date & Time: {signoff_data.get('timestamp', 'Not recorded')}"))
+        pdf.cell(COL_W, 5.5,
+                 pdf_safe(f"Date & Time: {sdata.get('timestamp', 'Not recorded')}"), border=0)
 
-    pdf.set_y(y + 32)
+    sig_y = y + 38
     pdf.set_draw_color(200, 200, 200)
     pdf.set_line_width(0.3)
-    sig_y = pdf.get_y() + 18
-    pdf.line(15, sig_y, 90, sig_y)
-    pdf.line(110, sig_y, 185, sig_y)
+    pdf.line(LM,               sig_y, LM + COL_W,               sig_y)
+    pdf.line(LM + COL_W + 10,  sig_y, LM + COL_W + 10 + COL_W, sig_y)
     pdf.set_y(sig_y + 2)
     pdf.set_font("Helvetica", "I", 7.5)
     pdf.set_text_color(150, 150, 150)
-    pdf.set_x(15); pdf.cell(80, 5, pdf_safe(f"Signature — {pa.get('name','Partner A')}"), new_x="RIGHT", new_y="TOP")
-    pdf.set_x(110); pdf.cell(80, 5, pdf_safe(f"Signature — {pb.get('name','Partner B')}"))
+    pdf.set_x(LM)
+    pdf.cell(COL_W, 5, pdf_safe(f"Signature — {pa.get('name','Partner A')}"), border=0)
+    pdf.set_x(LM + COL_W + 10)
+    pdf.cell(COL_W, 5, pdf_safe(f"Signature — {pb.get('name','Partner B')}"), border=0)
     pdf.ln(16)
 
-    # Disclaimer box
+    # Disclaimer
+    pdf.set_x(LM)
     pdf.set_fill_color(252, 252, 250)
     pdf.set_draw_color(180, 195, 150)
     pdf.set_line_width(0.2)
     pdf.set_font("Helvetica", "I", 7)
     pdf.set_text_color(140, 130, 100)
-    pdf.multi_cell(0, 4.2, pdf_safe(
-        f"IMPORTANT DISCLAIMER: This document is a preparation draft generated by KnotWise, an academic demonstration prototype. "
-        f"It is not legal advice and does not constitute a valid prenuptial agreement. Both parties must retain independent legal counsel "
-        f"before executing any final agreement. KnotWise is not a law firm and does not provide legal services. "
+    pdf.multi_cell(CW, 4.2, pdf_safe(
+        f"IMPORTANT DISCLAIMER: This document is a preparation draft generated by KnotWise, an academic "
+        f"demonstration prototype. It is not legal advice and does not constitute a valid prenuptial agreement. "
+        f"Both parties must retain independent legal counsel before executing any final agreement. "
+        f"KnotWise is not a law firm and does not provide legal services. "
         f"Generated: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}"),
         fill=True)
 
