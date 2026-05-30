@@ -184,8 +184,12 @@ pre { background: #070707 !important; border: 1px solid #131313 !important; bord
 .kw-hero-col-grad { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to bottom, transparent 45%, rgba(12,12,12,0.75) 85%, #0C0C0C 100%); }
 
 @keyframes kwFadeScale { from { opacity: 0; transform: scale(1.07); } to { opacity: 1; transform: scale(1); } }
-@keyframes kwPageIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
-section.main > div { animation: kwPageIn 0.4s ease-out both; }
+@keyframes kwPageIn {
+  0%   { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+section.main > div { animation: kwPageIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) both; }
+[data-testid="stForm"], [data-testid="stVerticalBlock"] > div { animation: kwPageIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 0.04s; }
 
 .kw-nav-active { text-align: center; padding: 0.65rem 0.2rem; border-bottom: 2px solid #8A9E58; }
 .kw-nav-active-num { font-size: 0.65rem; color: #8A9E58; letter-spacing: 0.06em; font-family: 'Inter', sans-serif; text-transform: uppercase; white-space: nowrap; }
@@ -765,7 +769,7 @@ def send_email_pdf(pdf_bytes, recipients):
 
 
 # ── Partner form ──────────────────────────────────────────────────────────
-def partner_form(label, state_key):
+def partner_form(label, state_key, next_page=None):
     existing = st.session_state[state_key]
     with st.form(f"{state_key}_form"):
         c1, c2 = st.columns(2)
@@ -799,13 +803,20 @@ def partner_form(label, state_key):
             spousal_support = st.selectbox("Spousal support",            ["Waived","Limited","Reserved for future review","Discuss with attorney"], key=f"{state_key}_sp")
             inheritance     = st.selectbox("Inheritance and family gifts",["Keep separate","Share if used by couple","Discuss with attorney"], key=f"{state_key}_inh")
             home_purchase   = st.selectbox("Future home purchase",        ["Shared property","Based on contribution","Discuss with attorney"], key=f"{state_key}_hm")
-        submitted = st.form_submit_button(f"Save {label} Questionnaire")
+        sb1, sb2 = st.columns(2)
+        with sb1:
+            submitted  = st.form_submit_button(f"Save {label} Questionnaire", use_container_width=True)
+        with sb2:
+            save_next = st.form_submit_button("Save & Continue →", use_container_width=True)
 
-    if submitted:
+    if submitted or save_next:
         st.session_state[state_key] = {"name":name,"email":email,"citizenship":citizenship,"immigration_status":immigration_status,"income":income,"owns_business":owns_business,"owns_real_estate":owns_real_estate,"has_children_prior":has_children_prior,"supports_family":supports_family,"notes":notes}
         goal_key = "goals_a" if state_key == "partner_a" else "goals_b"
         st.session_state[goal_key] = {"premarital_assets":premarital_assets,"future_income":future_income,"business_growth":business_growth,"debt_responsibility":debt_responsibility,"spousal_support":spousal_support,"inheritance":inheritance,"home_purchase":home_purchase}
-        st.success(f"{label} questionnaire saved.")
+        if save_next and next_page:
+            go(next_page)
+        else:
+            st.success(f"{label} questionnaire saved.")
 
 
 # ── Render ─────────────────────────────────────────────────────────────────
@@ -861,12 +872,19 @@ elif page == "setup":
                 wedding_date     = st.date_input("Expected Wedding Date", value=dd)
                 future_residence = st.text_input("Expected Residence After Marriage",    value=st.session_state.case.get("future_residence",""))
                 cross_border     = st.checkbox("Involves cross-border assets or multiple countries", value=st.session_state.case.get("cross_border",False))
-            submitted = st.form_submit_button("Save Case Setup")
-        if submitted:
+            sb1, sb2 = st.columns(2)
+            with sb1:
+                submitted  = st.form_submit_button("Save Case Setup", use_container_width=True)
+            with sb2:
+                save_next = st.form_submit_button("Save & Continue →", use_container_width=True)
+        if submitted or save_next:
             st.session_state.case = {"case_name":case_name,"wedding_date":str(wedding_date),"current_residence":current_residence,"future_residence":future_residence,"jurisdictions":jurisdictions,"cross_border":cross_border}
             st.session_state.case_created = True
-            st.session_state.ai_draft = None  # reset draft if case changes
-            st.success("Case setup saved.")
+            st.session_state.ai_draft = None
+            if save_next:
+                go("partner")
+            else:
+                st.success("Case setup saved.")
 
 
 # 3. ADD PARTNER ───────────────────────────────────────────────────────────
@@ -892,13 +910,20 @@ elif page == "partner":
             with c2:
                 access_level = st.selectbox("Partner Access Level", ["Complete questionnaire only","View shared summary after both submit","Full shared case access"])
                 message = st.text_area("Invitation Message", height=88, value="Hi, I invited you to complete your section of our prenup preparation questionnaire in KnotWise.")
-            sent = st.form_submit_button("Prepare Partner Invitation")
-        if sent:
+            sb1, sb2 = st.columns(2)
+            with sb1:
+                sent      = st.form_submit_button("Save Invitation", use_container_width=True)
+            with sb2:
+                sent_next = st.form_submit_button("Save & Continue →", use_container_width=True)
+        if sent or sent_next:
             st.session_state.partner_invited = True
             st.session_state.invite_email = invite_email
             if partner_name: st.session_state.partner_b["name"] = partner_name
-            st.success("Partner invitation prepared.")
-            st.code(f"To: {invite_email}\nSubject: KnotWise prenup questionnaire invitation\n\n{message}\n\nAccess Level: {access_level}", language="text")
+            if sent_next:
+                go("qa")
+            else:
+                st.success("Partner invitation prepared.")
+                st.code(f"To: {invite_email}\nSubject: KnotWise prenup questionnaire invitation\n\n{message}\n\nAccess Level: {access_level}", language="text")
 
 
 # 4. PARTNER A ─────────────────────────────────────────────────────────────
@@ -912,7 +937,7 @@ elif page == "qa":
         gold_rule()
         st.markdown("Complete your financial profile and prenup preference selections.")
     st.markdown("---")
-    partner_form("Partner A", "partner_a")
+    partner_form("Partner A", "partner_a", next_page="qb")
 
 
 # 5. PARTNER B ─────────────────────────────────────────────────────────────
@@ -929,7 +954,7 @@ elif page == "qb":
         else:
             st.markdown("Partner invitation prepared. Complete the questionnaire below.")
     st.markdown("---")
-    partner_form("Partner B", "partner_b")
+    partner_form("Partner B", "partner_b", next_page="assets")
 
 
 # 6. ASSETS & DEBTS ────────────────────────────────────────────────────────
@@ -1000,6 +1025,14 @@ elif page == "assets":
         if st.session_state.uploaded_docs:
             st.dataframe(pd.DataFrame(st.session_state.uploaded_docs), use_container_width=True)
 
+    st.markdown("---")
+    st.markdown(
+        '<div style="display:flex;justify-content:flex-end;margin-top:0.5rem">'
+        '<span style="font-size:0.62rem;color:#555;letter-spacing:0.08em;align-self:center;margin-right:1.2rem">'
+        'Add assets and debts above, then continue</span></div>', unsafe_allow_html=True)
+    if st.button("Continue to Risk Dashboard →"):
+        go("risk")
+
 
 # 7. RISK DASHBOARD ────────────────────────────────────────────────────────
 elif page == "risk":
@@ -1040,6 +1073,10 @@ elif page == "risk":
         st.markdown("---")
         if not a_df.empty: st.caption("Assets"); st.dataframe(a_df, use_container_width=True)
         if not d_df.empty: st.caption("Debts");  st.dataframe(d_df, use_container_width=True)
+
+    st.markdown("---")
+    if st.button("Continue to AI Draft →"):
+        go("draft")
 
 
 # 8. AI DRAFT ──────────────────────────────────────────────────────────────
