@@ -1328,7 +1328,7 @@ def build_pdf_bytes():
             self.set_text_color(160, 160, 160)
             self.set_x(LM)
             self.cell(CW, 5,
-                f"PREPARATION DRAFT — FOR ATTORNEY REVIEW ONLY  |  Page {self.page_no()}  |  KnotWise Academic Prototype",
+                f"PREPARATION DRAFT -- FOR ATTORNEY REVIEW ONLY  |  Page {self.page_no()}  |  KnotWise Academic Prototype",
                 align="C")
 
     pdf = KWDoc(orientation="P", unit="mm", format="A4")
