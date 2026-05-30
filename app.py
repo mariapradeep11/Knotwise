@@ -318,6 +318,8 @@ def render_sidebar():
         icon  = "●" if done else "○"
         st.sidebar.markdown(f'<p style="color:{color};font-size:0.78rem;margin:0.35rem 0;letter-spacing:0.03em">{icon}&nbsp; {label}</p>', unsafe_allow_html=True)
     st.sidebar.divider()
+    if st.sidebar.button("📋 Project Documentation", use_container_width=True, key="nav_ref"):
+        go("ref")
     st.sidebar.caption("Academic prototype only. Not legal advice.")
 
 
@@ -1249,3 +1251,272 @@ elif page == "final":
 
         st.markdown("---")
         st.markdown('<p style="font-size:0.62rem;color:#1E1E1E;letter-spacing:0.04em;line-height:1.8">This document is a preparation draft only and does not constitute a valid prenuptial agreement. Both parties should retain independent legal counsel before executing any final agreement.</p>', unsafe_allow_html=True)
+
+
+# ── REFERENCE / PROJECT DOCS ──────────────────────────────────────────────
+elif page == "ref":
+    eyebrow("NEC Residency Weekend")
+    st.title("Project Documentation")
+    gold_rule()
+    st.markdown("All eight deliverable tasks — from project selection through implementation — documented for academic review.")
+
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "Tasks 1 – 2  |  Selection & Requirements",
+        "Tasks 3 – 4  |  Data & App Architecture",
+        "Tasks 5 – 6  |  Infrastructure & Security",
+        "Tasks 7 – 8  |  Testing & Implementation",
+    ])
+
+    # ── TAB 1 ─────────────────────────────────────────────────────────────
+    with tab1:
+        with st.expander("Task 1 — Project Selection", expanded=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**Project Name:** KnotWise — AI Prenup Preparation Assistant")
+                st.markdown("**Group / Team:** Group 1 / Team A")
+                st.markdown("**Date:** May 2026")
+                st.markdown("**Business Problem**")
+                st.markdown("Prenuptial agreements are expensive and time-consuming because couples arrive at attorney consultations without organised financial disclosures, aligned preferences, or a clear understanding of what they need to discuss. KnotWise reduces preparation time, improves partner transparency, and helps attorneys receive cleaner intake packages.")
+            with col2:
+                st.markdown("**Team Members**")
+                team_df = pd.DataFrame([
+                    {"Name": "Team Member 1", "Degree Program": "[Insert]", "Role": "Project Manager / Requirements Lead"},
+                    {"Name": "Team Member 2", "Degree Program": "[Insert]", "Role": "Data Architect / Database Designer"},
+                    {"Name": "Team Member 3", "Degree Program": "[Insert]", "Role": "Streamlit Frontend Developer"},
+                    {"Name": "Team Member 4", "Degree Program": "[Insert]", "Role": "Backend Logic / AI Drafting Lead"},
+                    {"Name": "Team Member 5", "Degree Program": "[Insert]", "Role": "Security, Testing & Risk Lead"},
+                ])
+                st.dataframe(team_df, use_container_width=True, hide_index=True)
+            st.markdown("**Proposed Application**")
+            st.markdown("KnotWise is a Streamlit web app where both partners complete questionnaires, disclose assets and debts, set prenup goals, and receive an AI-generated preparation draft. Gemini 1.5 Flash fills a fixed template using captured data — one API call, cached in session. The final output is a signed PDF delivered by email or download.")
+
+        with st.expander("Task 2 — Requirements Definition"):
+            st.markdown("**Stakeholder Analysis**")
+            stakeholder_df = pd.DataFrame([
+                {"Stakeholder": "Partner A",          "Interest": "Complete disclosures, protect assets",    "Influence": "High"},
+                {"Stakeholder": "Partner B",          "Interest": "Complete disclosures, protect assets",    "Influence": "High"},
+                {"Stakeholder": "Attorney / Reviewer","Interest": "Receive clean intake package",            "Influence": "High"},
+                {"Stakeholder": "Product Owner",      "Interest": "Deliver viable MVP for class",            "Influence": "High"},
+                {"Stakeholder": "App Administrator",  "Interest": "Manage user data and security",           "Influence": "Medium"},
+                {"Stakeholder": "Notary / Signing Svc","Interest":"Execute final agreement",                 "Influence": "Low"},
+            ])
+            st.dataframe(stakeholder_df, use_container_width=True, hide_index=True)
+
+            st.markdown("**RACI Chart (abbreviated)**")
+            raci_df = pd.DataFrame([
+                {"Activity": "Define business problem",       "Product Owner":"A","Project Mgr":"R","Data Architect":"C","Frontend Dev":"C","Backend/AI Dev":"C","Security Lead":"C"},
+                {"Activity": "Design questionnaire flow",     "Product Owner":"A","Project Mgr":"R","Data Architect":"C","Frontend Dev":"C","Backend/AI Dev":"R","Security Lead":"C"},
+                {"Activity": "Build data model",              "Product Owner":"C","Project Mgr":"C","Data Architect":"R/A","Frontend Dev":"C","Backend/AI Dev":"C","Security Lead":"C"},
+                {"Activity": "Build Streamlit UI",            "Product Owner":"C","Project Mgr":"C","Data Architect":"I","Frontend Dev":"R/A","Backend/AI Dev":"C","Security Lead":"C"},
+                {"Activity": "Build scoring + conflict logic","Product Owner":"C","Project Mgr":"C","Data Architect":"C","Frontend Dev":"C","Backend/AI Dev":"R/A","Security Lead":"C"},
+                {"Activity": "Gemini AI integration",         "Product Owner":"C","Project Mgr":"C","Data Architect":"C","Frontend Dev":"C","Backend/AI Dev":"R/A","Security Lead":"C"},
+                {"Activity": "Security design",               "Product Owner":"C","Project Mgr":"C","Data Architect":"C","Frontend Dev":"C","Backend/AI Dev":"C","Security Lead":"R/A"},
+                {"Activity": "Testing",                       "Product Owner":"C","Project Mgr":"C","Data Architect":"C","Frontend Dev":"R","Backend/AI Dev":"R","Security Lead":"A"},
+            ])
+            st.dataframe(raci_df, use_container_width=True, hide_index=True)
+            st.caption("R = Responsible  A = Accountable  C = Consulted  I = Informed")
+
+            st.markdown("**Functional Requirements**")
+            for i, r in enumerate([
+                "System shall allow Partner A to create a prenup preparation case",
+                "System shall allow Partner A to invite Partner B to a separate questionnaire",
+                "System shall collect couple info: location, wedding date, marital residence",
+                "System shall collect income, assets, debts, business ownership, real estate, retirement, and inheritance per partner",
+                "System shall allow each partner to select prenup goals and preferences",
+                "System shall compare both partners' responses and identify conflicts",
+                "System shall calculate a prenup readiness score with breakdown",
+                "System shall generate a missing document checklist",
+                "System shall call Gemini AI once to fill a structured prenup template and cache the result",
+                "System shall allow both partners to digitally sign off with timestamps",
+                "System shall generate a PDF with AI draft + sign-off blocks",
+                "System shall deliver the PDF by download and optionally by email",
+            ], 1):
+                li(f"FR-{i:02d}: {r}")
+
+            st.markdown("**Non-Functional Requirements**")
+            for r in ["Pages load within 3 seconds for normal usage","Sensitive financial data protected via encrypted secrets management","Easy to use for non-technical users — no legal knowledge required","Clear disclaimers: AI drafts require attorney review before execution","Role concept for Partner A, Partner B, attorney reviewer, and admin","Audit-ready: questionnaire submission and draft generation timestamped","Scalable architecture to support future attorney marketplace integration","Explainable scoring logic — users see exactly why their score is what it is"]:
+                li(r)
+
+    # ── TAB 2 ─────────────────────────────────────────────────────────────
+    with tab2:
+        with st.expander("Task 3 — Data Architecture", expanded=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**Conceptual Model — Core Entities**")
+                for e in ["Couple Case","Partner Profile","Questionnaire Response","Asset","Debt","Prenup Goal","Conflict Flag","Readiness Score","AI Draft Document","Sign-Off Record","Attorney Review Request","Audit Log"]:
+                    li(e)
+            with col2:
+                st.markdown("**Logical Model — Key Fields**")
+                logical_df = pd.DataFrame([
+                    {"Entity": "Couple Case",        "Key Fields": "case_id, case_name, wedding_date, state, country, status"},
+                    {"Entity": "Partner Profile",    "Key Fields": "partner_id, case_id, name, email, role, citizenship, income"},
+                    {"Entity": "Asset",              "Key Fields": "asset_id, partner_id, asset_type, description, value, preference"},
+                    {"Entity": "Debt",               "Key Fields": "debt_id, partner_id, debt_type, balance, preference"},
+                    {"Entity": "Prenup Goal",        "Key Fields": "goal_id, partner_id, goal_category, selected_preference"},
+                    {"Entity": "Conflict Flag",      "Key Fields": "conflict_id, case_id, topic, severity, recommendation"},
+                    {"Entity": "Readiness Score",    "Key Fields": "score_id, case_id, score_value, explanation_json"},
+                    {"Entity": "AI Draft",           "Key Fields": "draft_id, case_id, draft_text, model, generated_at"},
+                    {"Entity": "Sign-Off Record",    "Key Fields": "signoff_id, partner_id, name, agreed, timestamp"},
+                ])
+                st.dataframe(logical_df, use_container_width=True, hide_index=True)
+
+            st.markdown("**Physical Model**")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("*Prototype (current)*")
+                for item in ["Streamlit session state (in-memory)","CSV export for reports","Secrets managed via Streamlit Cloud secrets.toml","Gemini API for AI draft generation"]:
+                    li(item)
+            with col2:
+                st.markdown("*Production (future)*")
+                for item in ["PostgreSQL with encrypted columns","FastAPI backend with JWT auth","AWS S3 for generated PDF storage","AWS Secrets Manager for API keys","Audit log table in PostgreSQL"]:
+                    li(item)
+
+            st.markdown("**Data Governance Plan**")
+            for item in ["Data minimization: collect only what is needed for prenup preparation","Role-based access: each partner accesses only their own profile and shared case","Consent-based sharing: partner responses shared only after both submit","Data retention policy: users can request deletion of case data","Audit logging: questionnaire submission, draft generation, and sign-off recorded","Data classification: financial disclosures and preferences classified as Confidential","Data quality rules: required fields, valid currency formats, duplicate asset checks","Secure export: generated PDFs not publicly accessible without authenticated session"]:
+                li(item)
+
+            st.markdown("**Ethical & Regulatory Impact Analysis**")
+            ethics_df = pd.DataFrame([
+                {"Area": "Data Privacy",       "Risk": "Collection of sensitive financial and personal information","Mitigation": "Encryption, access control, clear privacy policy, data minimization"},
+                {"Area": "GDPR / CCPA",        "Risk": "User may be subject to EU or California privacy law","Mitigation": "Consent capture, right to deletion, data residency disclosure"},
+                {"Area": "AI Bias",            "Risk": "Gemini may produce biased or jurisdictionally inaccurate language","Mitigation": "Fixed template structure, attorney review required, disclaimers on all AI output"},
+                {"Area": "AI Hallucination",   "Risk": "Model generates incorrect legal clauses","Mitigation": "Limit AI to template-filling, not free-form drafting; flag as draft only"},
+                {"Area": "Unauthorized Practice","Risk":"App may be perceived as providing legal advice","Mitigation": "Prominent disclaimers on every page and in the PDF"},
+                {"Area": "Human Oversight",    "Risk": "Users rely solely on AI output","Mitigation": "Attorney review gate in workflow, sign-off step, readiness score explainability"},
+            ])
+            st.dataframe(ethics_df, use_container_width=True, hide_index=True)
+
+        with st.expander("Task 4 — Application Architecture"):
+            st.markdown("**Application Flow**")
+            st.code("User → Streamlit UI → Questionnaire Forms → Session / Data Layer\n→ Scoring Engine → Conflict Engine → Theme Detector\n→ Gemini 1.5 Flash (one call, cached) → PDF Builder\n→ Sign-Off Module → Email / Download Delivery", language="text")
+
+            st.markdown("**Architectural Decision Records (ADR)**")
+            adr_df = pd.DataFrame([
+                {"ADR": "ADR-01", "Decision": "Use Streamlit for frontend", "Alternatives": "React, Flask, Django", "Trade-off": "Less customisable but 10× faster to build","Business Impact": "Working demo in 3 days","Risk": "Limited UI flexibility — acceptable for prototype"},
+                {"ADR": "ADR-02", "Decision": "Rule-based scoring before AI", "Alternatives": "Fully AI-generated scoring","Trade-off": "Less flexible but fully explainable","Business Impact": "Users understand their readiness score","Risk": "Reduces hallucination and bias risk"},
+                {"ADR": "ADR-03", "Decision": "Session state for prototype storage", "Alternatives": "PostgreSQL, SQLite, Firebase","Trade-off": "Simple and fast but not persistent","Business Impact": "Rapid development and demo readiness","Risk": "Production requires full database migration"},
+                {"ADR": "ADR-04", "Decision": "AI fills fixed template, not free-form", "Alternatives": "Fully AI-generated prenup","Trade-off": "Less creative but predictable and safe","Business Impact": "Reduces legal and ethical risk","Risk": "Output consistency over flexibility"},
+                {"ADR": "ADR-05", "Decision": "Gemini 1.5 Flash (free tier)", "Alternatives": "GPT-4, Claude, Mistral","Trade-off": "Free but rate-limited","Business Impact": "Zero API cost for class prototype","Risk": "Production would require paid tier"},
+            ])
+            st.dataframe(adr_df, use_container_width=True, hide_index=True)
+
+    # ── TAB 3 ─────────────────────────────────────────────────────────────
+    with tab3:
+        with st.expander("Task 5 — Infrastructure Architecture", expanded=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**Cloud Choice**")
+                st.markdown("*Prototype:* Streamlit Community Cloud (free, GitHub-connected, zero-config deployment)")
+                st.markdown("*Production:* AWS (recommended) — managed RDS, S3, Cognito, CloudWatch, WAF, and multi-AZ deployment")
+                st.markdown("**Infrastructure Diagram — Prototype**")
+                st.code("User Browser\n  └── Streamlit Community Cloud\n        └── app.py (Python 3.14)\n              ├── Google Gemini API (HTTPS)\n              ├── Streamlit Secrets (encrypted)\n              └── Gmail SMTP (PDF delivery)", language="text")
+            with col2:
+                st.markdown("**Infrastructure Diagram — Production**")
+                st.code("User Browser\n  └── CloudFront CDN\n        └── ALB (Load Balancer)\n              ├── ECS Fargate (app containers)\n              │     └── FastAPI + Streamlit\n              ├── RDS PostgreSQL (Multi-AZ)\n              ├── S3 (PDF storage, encrypted)\n              ├── Cognito (Auth)\n              └── SES (Email delivery)", language="text")
+                st.markdown("**Failover Strategy**")
+                for item in ["Multi-AZ RDS with automated failover (<30s)","ECS Fargate auto-scaling (2–10 tasks)","CloudFront serves cached static assets during app downtime","Health checks every 30 seconds, auto-restart on failure"]:
+                    li(item)
+
+            st.markdown("**Backup & Disaster Recovery**")
+            dr_df = pd.DataFrame([
+                {"Item": "Database backups",     "Frequency": "Daily automated snapshots", "Retention": "30 days",  "Storage": "S3 (encrypted)"},
+                {"Item": "PDF documents",        "Frequency": "On generation",             "Retention": "7 years",  "Storage": "S3 with versioning"},
+                {"Item": "App config / secrets", "Frequency": "On change",                 "Retention": "Indefinite","Storage": "AWS Secrets Manager"},
+                {"Item": "RTO (Recovery Time)",  "Frequency": "—",                         "Retention": "< 4 hours","Storage": "Multi-AZ auto-failover"},
+                {"Item": "RPO (Recovery Point)", "Frequency": "—",                         "Retention": "< 24 hours","Storage": "Daily backup window"},
+            ])
+            st.dataframe(dr_df, use_container_width=True, hide_index=True)
+
+        with st.expander("Task 6 — Security Architecture"):
+            st.markdown("**Identity & Access Management**")
+            for item in ["Partner A and Partner B: separate authenticated sessions in production","Attorney reviewer: read-only case access after partner consent","Admin: full case management with audit log visibility","MFA required for attorney and admin roles in production","JWT tokens with 1-hour expiry; refresh token rotation"]:
+                li(item)
+
+            st.markdown("**Security Controls Mapped to NIST / ISO 27001**")
+            controls_df = pd.DataFrame([
+                {"Control Area": "Access Control",     "NIST / ISO":  "NIST AC / ISO A.5, A.8", "Application Control": "Role-based access for partners, attorneys, and admins"},
+                {"Control Area": "Data Protection",    "NIST / ISO":  "NIST SC / ISO A.8",      "Application Control": "Encryption at rest (AES-256) and in transit (TLS 1.3)"},
+                {"Control Area": "Audit Logging",      "NIST / ISO":  "NIST AU / ISO A.8",      "Application Control": "Questionnaire submission, draft generation, sign-off timestamped"},
+                {"Control Area": "Input Validation",   "NIST / ISO":  "NIST SI / ISO A.8",      "Application Control": "Server-side validation of all form fields; SQL injection N/A (no raw SQL)"},
+                {"Control Area": "AI Prompt Security", "NIST / ISO":  "NIST SA / ISO A.8",      "Application Control": "Structured prompt with no user-controlled injection points"},
+                {"Control Area": "Incident Response",  "NIST / ISO":  "NIST IR / ISO A.5",      "Application Control": "Playbook for data breach notification within 72 hours (GDPR)"},
+                {"Control Area": "Backup & Recovery",  "NIST / ISO":  "NIST CP / ISO A.8",      "Application Control": "Daily backups, RTO 4h, RPO 24h, quarterly DR test"},
+                {"Control Area": "Network Security",   "NIST / ISO":  "NIST SC / ISO A.8",      "Application Control": "WAF, private DB subnet, no public RDS endpoint, HTTPS-only"},
+            ])
+            st.dataframe(controls_df, use_container_width=True, hide_index=True)
+            st.caption("HIPAA does not apply — KnotWise is not a healthcare application.")
+
+            st.markdown("**Enterprise Risk Register**")
+            risk_df = pd.DataFrame([
+                {"#": 1, "Risk": "Users rely on AI draft as final legal advice",   "Probability": "Medium","Impact": "High",  "Mitigation": "Prominent disclaimers, attorney review gate, sign-off step", "Owner": "Product Owner"},
+                {"#": 2, "Risk": "Sensitive financial data exposure",               "Probability": "Medium","Impact": "High",  "Mitigation": "Encryption, RBAC, secure secrets management",               "Owner": "Security Lead"},
+                {"#": 3, "Risk": "Incorrect/incomplete AI draft language",          "Probability": "Medium","Impact": "High",  "Mitigation": "Fixed template, attorney review required, draft labelling",   "Owner": "Backend/AI Lead"},
+                {"#": 4, "Risk": "Partner data shared without consent",             "Probability": "Low",   "Impact": "High",  "Mitigation": "Consent-based sharing, role-based access controls",           "Owner": "Security Lead"},
+                {"#": 5, "Risk": "AI hallucination or jurisdictional inaccuracy",  "Probability": "Medium","Impact": "Medium","Mitigation": "Structured prompt, limit to template-filling, flag as draft",   "Owner": "Backend/AI Lead"},
+                {"#": 6, "Risk": "Incomplete financial disclosure by partners",    "Probability": "High",  "Impact": "Medium","Mitigation": "Missing doc checklist, readiness score gate",                   "Owner": "Data Architect"},
+                {"#": 7, "Risk": "Application downtime during demo",               "Probability": "Low",   "Impact": "Medium","Mitigation": "Streamlit Cloud auto-restart, GitHub-linked redeployment",     "Owner": "Infrastructure Lead"},
+                {"#": 8, "Risk": "Unauthorised access to attorney/admin view",     "Probability": "Low",   "Impact": "High",  "Mitigation": "Authentication, least privilege, audit logging",               "Owner": "Security Lead"},
+                {"#": 9, "Risk": "Poor user adoption due to complex forms",        "Probability": "Medium","Impact": "Medium","Mitigation": "Step-by-step flow, progress score, plain-English questions",    "Owner": "Frontend Lead"},
+                {"#":10, "Risk": "Jurisdiction mismatch in generated language",    "Probability": "Medium","Impact": "High",  "Mitigation": "Collect jurisdiction data, flag cross-border cases, attorney gate","Owner": "Product Owner"},
+            ])
+            st.dataframe(risk_df, use_container_width=True, hide_index=True)
+
+    # ── TAB 4 ─────────────────────────────────────────────────────────────
+    with tab4:
+        with st.expander("Task 7 — Testing Strategy", expanded=True):
+            st.markdown("**Test Coverage Plan**")
+            test_df = pd.DataFrame([
+                {"Type": "Unit Testing",        "Scope": "Individual Python functions",                         "What": "completion_score(), detect_conflicts(), detect_theme(), build_prenup_prompt()", "Tool": "pytest"},
+                {"Type": "Integration Testing", "Scope": "Form → session state → scoring pipeline",            "What": "Form submission updates session state; scoring uses saved responses correctly", "Tool": "pytest + streamlit testing"},
+                {"Type": "System Testing",      "Scope": "Full end-to-end user journey",                       "What": "Steps 1–9: case → invite → questionnaires → assets → AI draft → sign-off → PDF", "Tool": "Manual + Playwright"},
+                {"Type": "Performance Testing", "Scope": "Page load times, Gemini API latency",                "What": "All pages < 3s; Gemini call < 15s; PDF generation < 5s",                      "Tool": "Streamlit metrics + manual"},
+                {"Type": "Security Testing",    "Scope": "Input validation, prompt injection, data exposure",  "What": "Form fields, AI prompt construction, secrets handling, session isolation",     "Tool": "Manual + OWASP checklist"},
+                {"Type": "User Acceptance",     "Scope": "Real-world usability with test users",               "What": "Complete questionnaire, understand score, download summary, review draft",    "Tool": "Classmate testing + feedback form"},
+            ])
+            st.dataframe(test_df, use_container_width=True, hide_index=True)
+
+            st.markdown("**Unit Test Examples**")
+            st.code("""# Test scoring logic
+def test_completion_score_empty():
+    # Fresh session state → score should be 0
+    assert completion_score()[0] == 0
+
+# Test conflict detection
+def test_detect_conflicts_identical_goals():
+    # Same preferences → no conflicts
+    goals = {"premarital_assets": "Keep separate", ...}
+    assert detect_conflicts(goals, goals) == []
+
+# Test theme detection
+def test_detect_theme_protection_focus():
+    goals_a = goals_b = {"premarital_assets": "Keep separate",
+                          "spousal_support": "Waived", ...}
+    assert detect_theme(goals_a, goals_b) == "Asset Protection Focus"
+""", language="python")
+
+        with st.expander("Task 8 — Implementation Plan"):
+            st.markdown("**Resource Plan**")
+            resource_df = pd.DataFrame([
+                {"Resource": "Streamlit",           "Purpose": "Web application frontend",                         "Cost": "Free"},
+                {"Resource": "Python 3.11+",        "Purpose": "Business logic, scoring, conflict detection",      "Cost": "Free"},
+                {"Resource": "Pandas",              "Purpose": "Data processing and display",                      "Cost": "Free"},
+                {"Resource": "Google Gemini Flash", "Purpose": "AI prenup draft generation",                      "Cost": "Free tier (1M tokens/day)"},
+                {"Resource": "fpdf2",               "Purpose": "PDF generation",                                   "Cost": "Free"},
+                {"Resource": "Streamlit Community Cloud","Purpose":"Deployment and hosting",                       "Cost": "Free"},
+                {"Resource": "GitHub",              "Purpose": "Source code management and CI/CD",                 "Cost": "Free"},
+                {"Resource": "Gmail SMTP",          "Purpose": "PDF email delivery to partners",                   "Cost": "Free"},
+                {"Resource": "Team Members (5)",    "Purpose": "Requirements, dev, data, security, testing, demo","Cost": "N/A"},
+            ])
+            st.dataframe(resource_df, use_container_width=True, hide_index=True)
+
+            st.markdown("**3-Day Sprint Timeline**")
+            timeline_df = pd.DataFrame([
+                {"Day": "Day 1", "Focus": "Foundation",    "Deliverables": "Project scope, requirements doc, data model, Streamlit layout, questionnaire fields, sample data"},
+                {"Day": "Day 2", "Focus": "Core Build",    "Deliverables": "Partner A/B forms, scoring logic, conflict detection, risk dashboard, draft preview, security docs"},
+                {"Day": "Day 3", "Focus": "AI + Delivery", "Deliverables": "Gemini integration, sign-off flow, PDF generation, email delivery, testing, risk register, presentation prep"},
+            ])
+            st.dataframe(timeline_df, use_container_width=True, hide_index=True)
+
+            st.markdown("**Risk Management for Delivery**")
+            for item in ["Scope control: MVP focuses on questionnaire intake, conflict detection, AI draft, sign-off, PDF — no advanced features","Daily progress checks to identify blockers early","Use Streamlit + session state to avoid complex backend setup","All AI output labelled as draft — reduces legal and ethical delivery risk","Fallback plan: if Gemini API fails, show rule-based template draft instead"]:
+                li(item)
